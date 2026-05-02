@@ -18,7 +18,7 @@
 
 1. 安装 [BRAT](https://obsidian.md/plugins?id=obsidian42-brat)
 2. 打开 BRAT 设置 → `Add Beta Plugin`
-3. 输入仓库地址：`https://gitee.com/housiyuan123/memory-orbs-user`
+3. 输入仓库地址：`https://github.com/HouSiyuan2001/memory-orbs-user`
 4. 启用插件
 
 ### 手动安装
@@ -33,7 +33,7 @@
 
 ## 📝 使用说明
 
-详见 [docs/USER_GUIDE.md](https://gitee.com/housiyuan123/memory-orbs-dev/blob/main/docs/USER_GUIDE.md)（开发者仓库）
+详见 [docs/USER_GUIDE.md](https://github.com/HouSiyuan2001/memory-orbs-dev/blob/main/docs/USER_GUIDE.md)（开发者仓库）
 
 ---
 
