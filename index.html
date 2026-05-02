@@ -60,6 +60,11 @@ body{
 .hero h1 span{background:linear-gradient(135deg,var(--joy),var(--ang),var(--fea));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .hero p{color:var(--tx-dim);font-size:1.05em;margin-bottom:28px}
 .hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.hero-gallery{max-width:900px;margin:36px auto 0;display:grid;grid-template-columns:1.15fr .85fr;gap:12px;align-items:stretch}
+.hero-shot{position:relative;min-height:190px;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);background:#101226;box-shadow:0 18px 42px rgba(0,0,0,0.22)}
+.hero-shot img{width:100%;height:100%;display:block;object-fit:cover}
+.hero-shot.secondary{min-height:190px}
+.hero-credit{max-width:900px;margin:8px auto 0;color:rgba(255,255,255,0.38);font-size:.68em;text-align:right}
 .toc-sidebar{
     position:fixed;right:12px;top:50%;transform:translateY(-50%);
     z-index:900;display:flex;flex-direction:column;gap:2px;
@@ -185,6 +190,16 @@ body{
 .mini-pl{height:68px;border-radius:28px;position:relative;display:flex;align-items:flex-end;justify-content:center;padding:0 22px;gap:5px}
 .mini-orb{width:40px;height:40px;border-radius:50%;flex-shrink:0;position:relative;transition:transform .3s;cursor:pointer}
 .mini-orb:hover{transform:translateY(-4px) scale(1.1)}
+.mini-orb[data-tip]::after{
+    content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 10px);
+    transform:translateX(-50%) translateY(4px);opacity:0;pointer-events:none;
+    min-width:150px;max-width:230px;padding:6px 10px;border-radius:8px;
+    background:var(--tip-bg,rgba(138,184,255,.86));color:var(--tip-color,#fff);
+    text-shadow:var(--tip-shadow,0 1px 3px rgba(0,0,0,.3));
+    font-size:11px;line-height:1.35;white-space:normal;text-align:center;
+    transition:opacity .12s,transform .12s;z-index:40
+}
+.mini-orb[data-tip]:hover::after{opacity:1;transform:translateX(-50%) translateY(0)}
 .mini-orb .hi{
     position:absolute;top:5px;left:8px;width:11px;height:6px;
     background:rgba(255,255,255,0.5);border-radius:50%;filter:blur(2px);pointer-events:none
@@ -245,6 +260,14 @@ body{
 .demo-pipeline-row-middle .demo-pipeline{border-radius:18px}
 .demo-pipeline-row-bottom .demo-pipeline{border-top-left-radius:18px;border-top-right-radius:18px}
 .code-blk{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:16px 20px;font-family:'SF Mono','Fira Code',monospace;font-size:.85em;color:var(--ac);overflow-x:auto;margin:14px 0}
+.markdown-flow{display:grid;grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr);gap:14px;align-items:center;margin:16px 0}
+.markdown-flow .code-blk{margin:0;height:100%;display:flex;align-items:center}
+.md-arrow{height:54px;width:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,#7b68ee,#5b9bd5);box-shadow:0 0 22px rgba(123,104,238,0.28);font-size:1.35em}
+.md-preview{background:linear-gradient(135deg,#0a0c1a 0%,#11142d 50%,#0c0e22 100%);border:1px solid rgba(255,255,255,0.08);border-radius:var(--r);padding:14px 16px;min-height:118px;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.md-preview-title{font-size:.78em;color:var(--tx-dim);text-align:center}
+.md-mini-pipe{height:56px;border-radius:24px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);display:flex;align-items:flex-end;justify-content:center;gap:5px;padding:0 14px 10px;position:relative;overflow:hidden}
+.md-mini-pipe::after{content:"";position:absolute;left:22px;right:22px;bottom:15px;height:1px;background:rgba(100,150,255,0.2)}
+.md-mini-orb{width:34px;height:34px;border-radius:50%;position:relative;z-index:1;box-shadow:0 0 14px currentColor,inset 0 -2px 7px rgba(0,0,0,.14),inset 0 2px 7px rgba(255,255,255,.3)}
 .f-item{background:var(--bg-c);border:1px solid var(--bd);border-radius:var(--r);padding:18px 22px;margin-bottom:10px}
 .f-item h3{color:var(--tx-b)}
 .f-item p{color:var(--tx-dim);font-size:.85em;margin-top:4px}
@@ -295,6 +318,11 @@ body{
     .code-disp .code-text{font-size:1em}
     .demo-pipeline-wrap{min-height:200px}
     .orb-showcase{gap:16px}
+    .hero-gallery{grid-template-columns:1fr;margin-top:28px}
+    .hero-shot,.hero-shot.secondary{min-height:180px}
+    .hero-credit{text-align:center}
+    .markdown-flow{grid-template-columns:1fr;gap:10px}
+    .md-arrow{width:48px;height:48px;margin:0 auto;transform:rotate(90deg)}
 }
 .nav-user{
     display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 14px;
@@ -352,6 +380,15 @@ body{
         <button class="btn btn-pri btn-lg" onclick="handleBuyClick()">立即购买</button>
         <a href="#what" class="btn btn-out">了解更多 ↓</a>
     </div>
+    <div class="hero-gallery" aria-label="Inside Out inspiration images">
+        <div class="hero-shot">
+            <img src="https://lumiere-a.akamaihd.net/v1/images/pp_insideout2_herobanner_798_fefe501e.jpeg?region=0,0,2048,878" alt="Inside Out 2 情绪角色剧照" loading="eager">
+        </div>
+        <div class="hero-shot secondary">
+            <img src="https://lumiere-a.akamaihd.net/v1/images/image_774fcaa0.jpeg?region=0,0,1920,1080" alt="Inside Out 2 情绪控制台剧照" loading="eager">
+        </div>
+    </div>
+    <div class="hero-credit">灵感参考图片来源：Disney / Pixar《Inside Out 2》官方页面</div>
 </section>
 
 <section class="sec" id="what">
@@ -394,7 +431,7 @@ body{
             <div class="orb-demo-single" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5) 0%,transparent 45%),conic-gradient(from 0deg,#fbeb37 0deg,#fbeb37 30deg,#8abdf5 34deg,#8abdf5 150deg,#df94ff 154deg,#df94ff 270deg,#fbeb37 274deg,#fbeb37 360deg);box-shadow:0 0 12px rgba(251,235,55,0.3),0 0 22px rgba(138,189,245,0.22),0 0 12px rgba(223,148,255,0.22),inset 0 -3px 8px rgba(0,0,0,0.12),inset 0 3px 8px rgba(255,255,255,0.3)">
                 <div class="demo-orb-inner-glow"></div><div class="demo-orb-highlight"></div>
             </div>
-            <span class="orb-badge">🧬 合成球（5种情绪混合）</span>
+            <span class="orb-badge">🧬 合成球（3种情绪混合）</span>
         </div>
         <div class="orb-showcase-item">
             <div class="orb-demo-single" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),#fbeb37 40%,#c9a800 80%,#7a6600);box-shadow:0 0 20px rgba(251,235,55,0.5),0 0 45px rgba(251,235,55,0.25),0 0 80px rgba(251,235,55,0.1),inset 0 -3px 8px rgba(0,0,0,0.1),inset 0 3px 8px rgba(255,255,255,0.4)">
@@ -467,7 +504,19 @@ body{
 <section class="sec" id="markdown">
     <h2>Markdown 嵌入</h2>
     <p class="sec-sub">在任何笔记中用代码块插入记忆球管道</p>
-    <div class="code-blk">```memory-orbs<br>date: 2026-05-02<br>mode: week<br>theme: cosmos<br>minimal: true<br>```</div>
+    <div class="markdown-flow">
+        <div class="code-blk">```memory-orbs<br>date: 2026-05-02<br>mode: week<br>theme: cosmos<br>minimal: true<br>```</div>
+        <div class="md-arrow" aria-hidden="true">→</div>
+        <div class="md-preview" aria-label="Markdown 代码块渲染后的记忆球管道预览">
+            <div class="md-preview-title">渲染为 Obsidian 内的记忆球管道</div>
+            <div class="md-mini-pipe">
+                <div class="md-mini-orb" style="color:var(--joy);background:radial-gradient(circle at 35% 25%,rgba(255,255,255,.62),var(--joy) 42%,#c9a800 80%,#7a6600)"></div>
+                <div class="md-mini-orb" style="color:var(--sad);background:radial-gradient(circle at 35% 25%,rgba(255,255,255,.62),var(--sad) 42%,#5a8ac0 80%,#2d4d70)"></div>
+                <div class="md-mini-orb" style="color:var(--ang);background:radial-gradient(circle at 35% 25%,rgba(255,255,255,.62),var(--ang) 42%,#c05040 80%,#5a1810)"></div>
+                <div class="md-mini-orb" style="color:var(--adm);background:radial-gradient(circle at 35% 25%,rgba(255,255,255,.5) 0%,transparent 45%),conic-gradient(var(--joy),var(--adm),var(--nos),var(--joy))"></div>
+            </div>
+        </div>
+    </div>
     <p style="color:var(--tx-dim);font-size:.85em;text-align:center;margin-top:12px">插件实际支持 <code>date</code> / <code>mode</code> / <code>theme</code> / <code>minimal</code>，也可用 <code>start</code> + <code>end</code> 指定自定义范围。</p>
 </section>
 
@@ -812,6 +861,10 @@ const demoEntries = [
             balls.forEach(b=>{const d=Math.hypot(lx-cx(b),ly-(r.height-b.r-b.y));if(d<b.r*1.25&&d<dist){hit=b;dist=d}});
             return hit;
         }
+        function inTrack(x,y){
+            const r=track.getBoundingClientRect();
+            return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;
+        }
         function step(){
             let moving=false,width=track.clientWidth,height=track.clientHeight;
             balls.forEach(b=>{
@@ -849,6 +902,7 @@ const demoEntries = [
                 const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;
                 drag.x+=dx*D;drag.y-=dy*D;drag.vx=Math.max(-MAX,Math.min(MAX,dx*D));drag.vy=-dy*D;start();return;
             }
+            if(!inTrack(e.clientX,e.clientY))return;
             const b=find(e.clientX,e.clientY);
             if(b!==hover){if(hover)hover.el.classList.remove('mo-pipeline-hover');hover=b;if(hover)hover.el.classList.add('mo-pipeline-hover')}
             if(timer)clearTimeout(timer);
@@ -866,8 +920,11 @@ const demoEntries = [
         for(let i=0;i<total;i++)makePipeline(multi,entries.slice(i*perRow,(i+1)*perRow),i===0?'demo-pipeline-row-top':i===total-1?'demo-pipeline-row-bottom':'demo-pipeline-row-middle');
     }
     document.querySelectorAll('.mini-orb').forEach(orb=>{
-        orb.addEventListener('mouseenter',()=>showTip(miniEntry(orb),orb));
-        orb.addEventListener('mouseleave',hideTip);
+        const entry=miniEntry(orb),rgb=hexToRgb(entry.emotion.color),light=lum(entry.emotion.color)>0.55;
+        orb.dataset.tip=entry.text;
+        orb.style.setProperty('--tip-bg',`rgba(${rgb.r},${rgb.g},${rgb.b},0.86)`);
+        orb.style.setProperty('--tip-color',light?'rgba(0,0,0,0.78)':'#fff');
+        orb.style.setProperty('--tip-shadow',light?'none':'0 1px 3px rgba(0,0,0,.3)');
     });
 })();
 
