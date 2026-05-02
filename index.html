@@ -647,7 +647,10 @@ async function loadKeys(){
         const plH=h-30,floorY=plH-30;
         // Draw pipeline
         c.save();
-        c.beginPath();c.roundRect(18,plH-62,w-36,62,30);c.fillStyle='rgba(255,255,255,0.03)';c.fill();
+        // Manual rounded rect for compatibility
+        const rx2=18,ry2=plH-62,rw=w-36,rh=62,rr=30;
+        c.beginPath();c.moveTo(rx2+rr,ry2);c.lineTo(rx2+rw-rr,ry2);c.arcTo(rx2+rw,ry2,rx2+rw,ry2+rr,rr);c.lineTo(rx2+rw,ry2+rh);c.lineTo(rx2,ry2+rh);c.lineTo(rx2,ry2+rr);c.arcTo(rx2,ry2,rx2+rr,ry2,rr);c.closePath();
+        c.fillStyle='rgba(255,255,255,0.03)';c.fill();
         c.strokeStyle='rgba(255,255,255,0.06)';c.lineWidth=1;c.stroke();c.restore();
         // Floor
         c.beginPath();c.moveTo(42,floorY+4);c.lineTo(w-42,floorY+4);
