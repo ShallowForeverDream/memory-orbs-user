@@ -2481,18 +2481,27 @@ var MemoryOrbsPlugin = class extends import_obsidian.Plugin {
     });
   }
   async loadCustomFont() {
+    const fontPath = ".obsidian/plugins/memory-orbs/SmileySans-Oblique.ttf";
     try {
-      const fontPath = ".obsidian/plugins/memory-orbs/SmileySans-Oblique.ttf";
       const data = await this.app.vault.adapter.readBinary(fontPath);
       if (data.byteLength > 1e4) {
         await this.registerFontFromBuffer(data);
-        console.log("Memory Orbs: \u5F97\u610F\u9ED1\u5B57\u4F53\u52A0\u8F7D\u6210\u529F");
+        console.log("Memory Orbs: \u5F97\u610F\u9ED1\u5B57\u4F53\u52A0\u8F7D\u6210\u529F\uFF08\u672C\u5730\uFF09");
         return;
       }
-      console.warn("Memory Orbs: \u5B57\u4F53\u6587\u4EF6\u5F02\u5E38\uFF08\u8FC7\u5C0F\uFF09\uFF0C\u5C06\u4F7F\u7528\u7CFB\u7EDF\u9ED8\u8BA4\u5B57\u4F53");
-    } catch (e) {
-      console.warn("Memory Orbs: \u672A\u627E\u5230 SmileySans-Oblique.ttf\uFF0C\u5C06\u4F7F\u7528\u7CFB\u7EDF\u9ED8\u8BA4\u5B57\u4F53");
+    } catch (_) {
     }
+    try {
+      const remoteUrl = "https://raw.githubusercontent.com/HouSiyuan2001/memory-orbs-user/main/SmileySans-Oblique.ttf";
+      const resp = await (0, import_obsidian.requestUrl)({ url: remoteUrl, method: "GET" });
+      if (resp.arrayBuffer && resp.arrayBuffer.byteLength > 1e4) {
+        await this.registerFontFromBuffer(resp.arrayBuffer);
+        console.log("Memory Orbs: \u5F97\u610F\u9ED1\u5B57\u4F53\u52A0\u8F7D\u6210\u529F\uFF08\u8FDC\u7A0B\uFF09");
+        return;
+      }
+    } catch (_) {
+    }
+    console.warn("Memory Orbs: \u672A\u627E\u5230 SmileySans-Oblique.ttf\uFF0C\u5C06\u4F7F\u7528\u7CFB\u7EDF\u9ED8\u8BA4\u5B57\u4F53");
   }
   async registerFontFromBuffer(buffer) {
     const blob = new Blob([buffer], { type: "font/ttf" });
