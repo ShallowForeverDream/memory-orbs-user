@@ -99,6 +99,12 @@ async function verifyToken(token, env) {
 // ─── Worker ──────────────────────────────────────────
 
 export async function onRequest({ request, env }) {
+		const url = new URL(request.url);
+		const apiPaths = new Set(["/activate", "/verify", "/register", "/login", "/my-keys", "/purchase"]);
+		if (!apiPaths.has(url.pathname)) {
+			return env.ASSETS.fetch(request);
+		}
+
 		if (request.method === "OPTIONS") {
 			return new Response(null, {
 				headers: {
@@ -112,8 +118,6 @@ export async function onRequest({ request, env }) {
 		if (request.method !== "POST") {
 			return json({ error: "method_not_allowed" }, 405);
 		}
-
-		const url = new URL(request.url);
 
 		// ──────────────────────────────────────────
 		// POST /activate — 首次激活
