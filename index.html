@@ -610,7 +610,7 @@ body{
         </div>
         <div class="manual-pay-card manual-tip">
             <h3>温馨提示</h3>
-            <p>客服回复可能比较慢，可以先在群里 @群主。群里直接回复的大多是机器人；如果想要真人回复，请 @<strong>&lt;Φ |骰子φ&gt;</strong>，然后私发账号邮箱、支付宝订单编号和付款截图。</p>
+            <p>客服回复可能比较慢，可以先在群里 @群主（龙虾骰子）。仅群主的群内回复是机器人；如果想要真人回复，请 @<strong>&lt;Φ |骰子φ&gt;</strong>，然后私发账号邮箱、支付宝订单编号和付款截图。</p>
             <p>需要远程安装服务时，私聊说明找 <strong>爱物理的郭哥</strong>。</p>
         </div>
         <div class="manual-pay-card">
@@ -1000,12 +1000,12 @@ function copyC(id){navigator.clipboard.writeText(document.getElementById(id).tex
 function closeM(id){document.getElementById(id).classList.remove('ac')}
 function handleBuyClick(){const tk=localStorage.getItem('mo_tk');if(tk){openM('purchase-modal');updatePurchaseHint();return}buyAfterLogin=true;openM('login-modal')}
 function getPaymentMessage(){
-    const em=localStorage.getItem('mo_em')||'';
+    const em=localStorage.getItem('mo_em')||'your-email@example.com';
     return `我已通过支付宝付款购买 Memory Orbs。账号邮箱：${em}。付款金额：14.90 元。支付宝付款订单编号：请填写。付款截图：已附。请帮我核对收款并开通激活码。`;
 }
 function updatePurchaseHint(){
-    const em=localStorage.getItem('mo_em')||'';
-    document.getElementById('pay-account').textContent=em||'-';
+    const em=localStorage.getItem('mo_em')||'your-email@example.com';
+    document.getElementById('pay-account').textContent=em;
     document.getElementById('pay-message').textContent=getPaymentMessage();
 }
 function copyPaymentMessage(){
