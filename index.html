@@ -4,942 +4,722 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Memory Orbs · 记忆球 产品介绍</title>
-
 <style>
 @font-face {
     font-family: 'SmileySans';
     src: url('./SmileySans-Oblique.ttf') format('truetype'),
          url('https://cdn.jsdelivr.net/gh/atelier-anchor/smiley-sans@v2.0.1/SmileySans-Oblique.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
+    font-weight: normal; font-style: normal; font-display: swap;
 }
 
 :root {
-    --bg: #1a1a2e;
-    --bg-light: #222240;
-    --bg-card: rgba(255,255,255,0.04);
-    --text: #e0e0e0;
-    --text-dim: rgba(255,255,255,0.5);
-    --text-bright: #fff;
-    --accent: #8ab8ff;
-    --accent-dim: rgba(138,184,255,0.3);
-    --border: rgba(255,255,255,0.08);
-    --joy: #fbeb37;
-    --sadness: #8abdf5;
-    --anger: #ff9185;
-    --disgust: #75eaa6;
-    --fear: #df94ff;
-    --anxiety: #ffa947;
-    --admire: #1affd1;
-    --embarrass: #ffa8d4;
-    --bored: #6f94b8;
-    --nostalgia: #ccc;
-    --radius: 12px;
-    --max-w: 900px;
+    --joy: #fbeb37; --sad: #8abdf5; --ang: #ff9185; --dis: #75eaa6;
+    --fea: #df94ff; --anx: #ffa947; --adm: #1affd1; --emb: #ffa8d4;
+    --bor: #6f94b8; --nos: #ccc;
+    --bg: #1a1a2e; --bg2: #222240; --bg-c: rgba(255,255,255,0.04);
+    --tx: #e0e0e0; --tx-dim: rgba(255,255,255,0.5); --tx-b: #fff;
+    --ac: #8ab8ff; --ac-dim: rgba(138,184,255,0.3);
+    --bd: rgba(255,255,255,0.08); --r: 12px; --mw: 960px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+    font-family:'SmileySans','PingFang SC','Microsoft YaHei',sans-serif;
+    background:var(--bg);color:var(--tx);line-height:1.7;overflow-x:hidden
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* Nav */
+.nav{
+    position:fixed;top:0;left:0;right:0;z-index:1000;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 24px;background:rgba(26,26,46,0.85);
+    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    border-bottom:1px solid var(--bd)
+}
+.nav-logo{font-size:1.2em;color:var(--tx-b);font-weight:500}
+.nav-acts{display:flex;gap:10px}
 
-html { scroll-behavior: smooth; }
+/* Buttons */
+.btn{
+    display:inline-block;padding:10px 22px;border-radius:var(--r);
+    font-family:inherit;font-size:.95em;cursor:pointer;border:none;
+    transition:all .2s;text-decoration:none;color:var(--tx-b)
+}
+.btn-pri{background:linear-gradient(135deg,#7b68ee,#5b9bd5);box-shadow:0 4px 20px rgba(123,104,238,0.3)}
+.btn-pri:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(123,104,238,0.45)}
+.btn-out{
+    background:transparent;border:1px solid rgba(255,255,255,0.2);
+    color:var(--tx);font-size:.85em;padding:7px 16px
+}
+.btn-out:hover{border-color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.05)}
+.btn-lg{padding:14px 36px;font-size:1.1em}
+.btn-sm{padding:6px 14px;font-size:.8em}
+.btn-blk{width:100%;text-align:center}
 
-body {
-    font-family: 'SmileySans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.7;
-    overflow-x: hidden;
-}
+/* Sections */
+.sec{max-width:var(--mw);margin:0 auto;padding:80px 24px}
+.sec:first-of-type{padding-top:120px}
+.sec h2{font-size:1.8em;color:var(--tx-b);margin-bottom:16px;text-align:center}
+.sec h3{font-size:1.2em;color:var(--ac);margin-bottom:10px}
+.sec-sub{text-align:center;color:var(--tx-dim);font-size:.9em;margin-bottom:40px}
 
-/* ── NavBar ─────────────────────────── */
-.navbar {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 24px;
-    background: rgba(26,26,46,0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border);
-}
-.navbar-logo { font-size: 1.2em; color: var(--text-bright); font-weight: 500; }
-.navbar-actions { display: flex; gap: 10px; }
+/* Hero */
+.hero{text-align:center;padding:140px 24px 100px}
+.hero h1{font-size:3.2em;color:var(--tx-b);margin-bottom:12px}
+.hero h1 span{background:linear-gradient(135deg,var(--joy),var(--ang),var(--fea));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{color:var(--tx-dim);font-size:1.05em;margin-bottom:30px}
+.hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
 
-/* ── Buttons ────────────────────────── */
-.btn {
-    display: inline-block; padding: 10px 22px; border-radius: var(--radius);
-    font-family: inherit; font-size: 0.95em; cursor: pointer; border: none;
-    transition: all 0.2s; text-decoration: none; color: var(--text-bright);
+/* Feature grid */
+.f-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:20px}
+.f-card{
+    background:var(--bg-c);border:1px solid var(--bd);
+    border-radius:var(--r);padding:24px;cursor:pointer;transition:all .25s
 }
-.btn-primary {
-    background: linear-gradient(135deg, #7b68ee, #5b9bd5);
-    box-shadow: 0 4px 20px rgba(123,104,238,0.3);
-}
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(123,104,238,0.45); }
-.btn-outline {
-    background: transparent; border: 1px solid rgba(255,255,255,0.2);
-    color: var(--text); font-size: 0.85em; padding: 7px 16px;
-}
-.btn-outline:hover { border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.05); }
-.btn-lg { padding: 14px 36px; font-size: 1.1em; }
-.btn-sm { padding: 6px 14px; font-size: 0.8em; }
-.btn-block { width: 100%; text-align: center; }
+.f-card:hover{transform:translateY(-2px);border-color:var(--ac-dim);background:rgba(138,184,255,0.06)}
+.f-icon{font-size:2em;margin-bottom:8px}
+.f-label{font-size:1em;color:var(--tx-b)}
 
-/* ── Sections ───────────────────────── */
-.section {
-    max-width: var(--max-w); margin: 0 auto; padding: 80px 24px;
-}
-.section:first-of-type { padding-top: 120px; }
-.section h2 {
-    font-size: 1.8em; color: var(--text-bright); margin-bottom: 16px;
-    text-align: center;
-}
-.section h3 { font-size: 1.2em; color: var(--accent); margin-bottom: 10px; }
-.section-subtitle {
-    text-align: center; color: var(--text-dim); font-size: 0.9em;
-    margin-bottom: 40px;
-}
+/* Emotion chips */
+.e-chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:24px 0}
+.chip{display:flex;align-items:center;gap:6px;background:var(--bg-c);border:1px solid var(--bd);border-radius:20px;padding:6px 16px;font-size:.9em}
+.chip-dot{width:10px;height:10px;border-radius:50%}
+.synth{display:flex;gap:20px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+.synth-it{display:flex;flex-direction:column;align-items:center}
+.synth-d{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,0.2)}
+.synth-d.mix{background:conic-gradient(var(--joy) 0deg 120deg,var(--sad) 120deg 240deg,var(--ang) 240deg 360deg)}
+.synth-d.core{background:linear-gradient(135deg,#fce96b,var(--joy));box-shadow:0 0 18px rgba(251,235,55,0.5)}
+.synth-l{font-size:.75em;color:var(--tx-dim);margin-top:4px}
 
-/* ── Hero ───────────────────────────── */
-.hero { text-align: center; padding: 140px 24px 100px; }
-.hero h1 { font-size: 3.2em; color: var(--text-bright); margin-bottom: 12px; }
-.hero h1 span { background: linear-gradient(135deg, #fbeb37, #ff9185, #df94ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.hero p { color: var(--text-dim); font-size: 1.05em; margin-bottom: 30px; }
-.hero-buttons { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+/* ── Theme Demos (accurate from plugin) ── */
+.theme-row{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:20px}
+.t-demo{
+    border-radius:16px;overflow:hidden;position:relative;
+    min-height:200px;display:flex;flex-direction:column;
+    justify-content:flex-end;padding:20px;
+    border:1px solid var(--bd);transition:all .3s
+}
+.t-demo:hover{transform:translateY(-2px)}
+.t-name{font-size:1em;color:var(--tx-b);margin-top:12px;text-align:center}
 
-/* ── Features Grid ──────────────────── */
-.features-grid {
-    display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px;
+/* Mini pipeline (shared) */
+.mini-pl{
+    height:80px;border-radius:30px;position:relative;
+    display:flex;align-items:flex-end;justify-content:center;
+    padding:0 24px;gap:4px
 }
-.feature-card {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 24px; cursor: pointer;
-    transition: all 0.25s;
+.mini-orb{
+    width:44px;height:44px;border-radius:50%;flex-shrink:0;
+    position:relative;transition:transform .3s
 }
-.feature-card:hover { transform: translateY(-2px); border-color: var(--accent-dim); background: rgba(138,184,255,0.06); }
-.feature-icon { font-size: 2em; margin-bottom: 8px; }
-.feature-label { font-size: 1em; color: var(--text-bright); }
+.mini-orb:hover{transform:translateY(-4px) scale(1.1)}
+.mini-orb .hi{
+    position:absolute;top:6px;left:9px;width:12px;height:7px;
+    background:rgba(255,255,255,0.6);border-radius:50%;filter:blur(2px);pointer-events:none
+}
+.mini-orb .in-glow{
+    position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(circle at 30% 25%,rgba(255,255,255,0.5),transparent 50%);pointer-events:none
+}
+.mini-orb .star-burst{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:80%;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3) 40%,rgba(255,255,255,0.5) 50%,rgba(255,255,255,0.3) 60%,transparent);pointer-events:none
+}
+.mini-orb .star-burst-v{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:1px;height:80%;
+    background:linear-gradient(180deg,transparent,rgba(255,255,255,0.3) 40%,rgba(255,255,255,0.5) 50%,rgba(255,255,255,0.3) 60%,transparent);pointer-events:none
+}
+.mini-orb .core-ring{
+    position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.25);
+    animation:pulse-ring 2.5s ease-in-out infinite
+}
+@keyframes pulse-ring{0%,100%{transform:scale(1);opacity:.2}50%{transform:scale(1.35);opacity:.05}}
 
-/* ── Emotion Chips ──────────────────── */
-.emotion-chips {
-    display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
-    margin: 24px 0;
+/* Theme: Cosmos */
+.t-cosmos{
+    background:linear-gradient(135deg,#050612 0%,#0a0c1a 25%,#11142d 50%,#0c0e22 75%,#050612 100%);
+    position:relative;overflow:hidden
 }
-.chip {
-    display: flex; align-items: center; gap: 6px;
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: 20px; padding: 6px 16px; font-size: 0.9em;
+.t-cosmos::before{
+    content:'';position:absolute;inset:0;
+    background:
+        radial-gradient(2px 2px at 10% 20%,rgba(255,255,255,0.3),transparent),
+        radial-gradient(1.5px 1.5px at 25% 15%,rgba(255,255,255,0.2),transparent),
+        radial-gradient(1px 1px at 40% 30%,rgba(255,255,255,0.25),transparent),
+        radial-gradient(2px 2px at 60% 10%,rgba(255,255,255,0.2),transparent),
+        radial-gradient(1.5px 1.5px at 75% 25%,rgba(255,255,255,0.3),transparent),
+        radial-gradient(1px 1px at 85% 15%,rgba(255,255,255,0.2),transparent),
+        radial-gradient(2px 2px at 15% 35%,rgba(255,255,255,0.15),transparent),
+        radial-gradient(1px 1px at 50% 40%,rgba(255,255,255,0.25),transparent);
+    pointer-events:none
 }
-.chip-dot { width: 10px; height: 10px; border-radius: 50%; }
+.t-cosmos .mini-pl{
+    background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+    box-shadow:inset 0 2px 12px rgba(100,120,255,0.06),0 0 20px rgba(100,120,255,0.04)
+}
+.t-cosmos .mini-orb{outline:2px solid rgba(255,255,255,0.35);outline-offset:1px;animation:star-float 4s ease-in-out infinite}
+.t-cosmos .mini-orb:nth-child(2n){animation-delay:1s}
+.t-cosmos .mini-orb:nth-child(3n){animation-delay:2s}
+@keyframes star-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 
-.synth-box {
-    display: flex; gap: 20px; justify-content: center; margin-top: 18px; flex-wrap: wrap;
+/* Theme: Classic */
+.t-classic{
+    background:linear-gradient(170deg,#f5f3ff 0%,#ede9fe 25%,#f0ecff 50%,#f8f7ff 100%)
 }
-.synth-item { display: flex; flex-direction: column; align-items: center; }
-.synth-dot {
-    width: 24px; height: 24px; border-radius: 50%;
-    border: 2px solid rgba(255,255,255,0.2);
+.t-classic .mini-pl{
+    background:rgba(30,27,55,0.03);border:1px solid rgba(30,27,55,0.06)
 }
-.synth-dot.mixed {
-    background: conic-gradient(var(--joy) 0deg 120deg, var(--sadness) 120deg 240deg, var(--anger) 240deg 360deg);
-}
-.synth-dot.core {
-    background: linear-gradient(135deg, #fce96b, #fbeb37);
-    box-shadow: 0 0 18px rgba(251,235,55,0.5);
-}
-.synth-label { font-size: 0.75em; color: var(--text-dim); margin-top: 4px; }
+.t-classic .mini-orb{animation:cli-float 3.5s ease-in-out infinite}
+.t-classic .mini-orb:nth-child(2n){animation-delay:.4s}
+.t-classic .mini-orb:nth-child(3n){animation-delay:.8s}
+@keyframes cli-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 
-/* ── Theme Cards ────────────────────── */
-.theme-cards {
-    display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px;
+/* Theme: Sketch */
+.t-sketch{
+    background:
+        repeating-linear-gradient(0deg,transparent,transparent 31px,rgba(100,140,180,0.08) 31px,rgba(100,140,180,0.08) 32px),
+        repeating-linear-gradient(90deg,transparent,transparent 31px,rgba(100,140,180,0.05) 31px,rgba(100,140,180,0.05) 32px),
+        linear-gradient(180deg,#faf8f0 0%,#f5f0e3 40%,#f0ead8 100%)
 }
-.theme-card {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 20px; text-align: center;
-    transition: all 0.25s;
+.t-sketch .mini-pl{
+    background:rgba(80,60,40,0.02);border:1.5px dashed rgba(80,60,40,0.15);
+    border-radius:24px 28px 20px 26px
 }
-.theme-card:hover { border-color: var(--accent-dim); }
-.theme-demo {
-    height: 80px; border-radius: 10px; margin-bottom: 12px;
-    display: flex; align-items: flex-end; justify-content: center; gap: 8px;
-    padding: 10px; position: relative; overflow: hidden;
+.t-sketch .mini-orb{
+    border:2.5px solid rgba(80,60,40,0.25);box-shadow:2px 3px 0 rgba(80,60,40,0.08) !important;
+    filter:saturate(.85) contrast(1.05);animation:sk-wobble 4s ease-in-out infinite !important
 }
-.theme-demo.cosmos { background: rgba(255,255,255,0.03); border: 1px solid rgba(100,120,255,0.1); }
-.theme-demo.classic { background: rgba(200,200,200,0.05); border: 1px solid rgba(200,200,200,0.15); border-radius: 6px; }
-.theme-demo.sketch { background: rgba(255,255,255,0.02); border: 1.5px dashed rgba(255,255,255,0.12); }
-.theme-demo.glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.06); }
-.mini-dot {
-    width: 22px; height: 22px; border-radius: 50%;
-}
-.theme-name { font-size: 0.95em; color: var(--text-bright); }
+.t-sketch .mini-orb:nth-child(3n+1){border-radius:52% 48% 50% 50% / 46% 52% 48% 54%}
+.t-sketch .mini-orb:nth-child(3n+2){border-radius:46% 54% 48% 52% / 52% 48% 52% 48%}
+.t-sketch .mini-orb:nth-child(3n+0){border-radius:48% 52% 46% 54% / 50% 46% 54% 50%}
+@keyframes sk-wobble{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-3px) rotate(1deg)}50%{transform:translateY(-5px) rotate(0)}75%{transform:translateY(-2px) rotate(-1deg)}}
 
-/* ── Features List ──────────────────── */
-.feature-list { margin-top: 20px; }
-.feature-item {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 20px 24px; margin-bottom: 12px;
+/* Theme: Glass */
+.t-glass{
+    background:
+        radial-gradient(ellipse at 15% 20%,rgba(200,170,255,0.35) 0%,transparent 50%),
+        radial-gradient(ellipse at 85% 15%,rgba(140,200,255,0.3) 0%,transparent 45%),
+        radial-gradient(ellipse at 50% 85%,rgba(255,160,220,0.28) 0%,transparent 50%),
+        linear-gradient(160deg,#e8e0f8 0%,#dce6f8 30%,#e8e0f8 60%,#f0e4f8 100%)
 }
-.feature-item h3 { color: var(--text-bright); }
-.feature-item p { color: var(--text-dim); font-size: 0.85em; margin-top: 4px; }
+.t-glass .mini-pl{
+    background:rgba(255,255,255,0.3);border:1px solid rgba(160,140,200,0.15);
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    box-shadow:inset 0 1px 16px rgba(168,130,255,0.06),0 2px 12px rgba(168,130,255,0.06)
+}
+.t-glass .mini-orb{
+    outline:2px solid rgba(255,255,255,0.45);outline-offset:1px;
+    animation:gl-float 5s ease-in-out infinite
+}
+.t-glass .mini-orb:nth-child(2n){animation-delay:.8s}
+.t-glass .mini-orb:nth-child(3n){animation-delay:1.6s}
+@keyframes gl-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 
-/* ── Code Block ─────────────────────── */
-.code-block {
-    background: var(--bg-light); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 16px 20px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: 0.85em; color: var(--accent);
-    overflow-x: auto; margin: 16px 0;
+/* Multi-row pipeline demo */
+.multi-row-demo{
+    display:flex;flex-direction:column;gap:12px;margin:20px 0
 }
-
-/* ── Interactive Demo ───────────────── */
-#demo-canvas {
-    width: 100%; height: 260px; border-radius: var(--radius);
-    background: var(--bg-card); border: 1px solid var(--border);
-    margin: 20px 0; cursor: grab; position: relative; overflow: hidden;
-}
-#demo-canvas:active { cursor: grabbing; }
-
-/* ── Getting Started Steps ──────────── */
-.steps { margin-top: 20px; }
-.step {
-    display: flex; align-items: flex-start; gap: 16px;
-    padding: 16px 0; border-bottom: 1px solid var(--border);
-}
-.step-num {
-    width: 36px; height: 36px; border-radius: 50%;
-    background: var(--accent-dim); color: var(--text-bright);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.9em; flex-shrink: 0;
-}
-.step-body h4 { color: var(--text-bright); font-size: 0.95em; }
-.step-body p { color: var(--text-dim); font-size: 0.8em; margin-top: 2px; }
-
-/* ── Footer ─────────────────────────── */
-.footer {
-    text-align: center; padding: 60px 24px;
-    border-top: 1px solid var(--border); color: var(--text-dim); font-size: 0.8em;
-}
-.footer a { color: var(--accent); text-decoration: none; margin: 0 10px; }
-.footer a:hover { text-decoration: underline; }
-.footer p { margin: 6px 0; }
-
-/* ── Modal ──────────────────────────── */
-.modal-overlay {
-    display: none; position: fixed; inset: 0; z-index: 2000;
-    background: rgba(0,0,0,0.6); align-items: center; justify-content: center;
-    padding: 20px;
-}
-.modal-overlay.active { display: flex; }
-.modal {
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 16px; padding: 32px; max-width: 440px; width: 100%;
-    max-height: 90vh; overflow-y: auto; position: relative;
-}
-.modal-close {
-    position: absolute; top: 12px; right: 16px; background: none; border: none;
-    color: var(--text-dim); font-size: 1.5em; cursor: pointer;
-}
-.modal-close:hover { color: var(--text-bright); }
-.modal h2 { font-size: 1.4em; color: var(--text-bright); margin-bottom: 8px; text-align: center; }
-.modal p.modal-desc { color: var(--text-dim); font-size: 0.85em; text-align: center; margin-bottom: 20px; }
-
-/* ── Purchase Modal ─────────────────── */
-.qr-wrap {
-    text-align: center; margin: 20px 0; padding: 20px;
-    background: #fff; border-radius: var(--radius);
-}
-.qr-wrap img { max-width: 200px; border-radius: 8px; }
-.qr-wrap p { color: #666; font-size: 0.8em; margin-top: 8px; font-family: 'PingFang SC', sans-serif; }
-
-.code-display {
-    text-align: center; margin: 20px 0; padding: 20px;
-    background: var(--bg-light); border: 1px solid var(--accent-dim);
-    border-radius: var(--radius);
-}
-.code-display .code {
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: 1.3em; color: var(--accent); letter-spacing: 2px;
-    word-break: break-all;
-}
-.code-display .code-label { font-size: 0.8em; color: var(--text-dim); margin-bottom: 8px; }
-
-/* ── Form ───────────────────────────── */
-.form-group { margin-bottom: 16px; }
-.form-group label {
-    display: block; font-size: 0.85em; color: var(--text-dim); margin-bottom: 6px;
-}
-.form-group input {
-    width: 100%; padding: 10px 14px; border-radius: var(--radius);
-    background: var(--bg-light); border: 1px solid var(--border);
-    color: var(--text-bright); font-family: inherit; font-size: 0.95em;
-    transition: border-color 0.2s;
-}
-.form-group input:focus { outline: none; border-color: var(--accent-dim); }
-.form-group input::placeholder { color: rgba(255,255,255,0.2); }
-
-/* ── Tabs (Login/Register) ──────────── */
-.tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
-.tab-btn {
-    flex: 1; padding: 10px; background: none; border: none; cursor: pointer;
-    font-family: inherit; font-size: 0.9em; color: var(--text-dim);
-    transition: all 0.2s; border-bottom: 2px solid transparent;
-}
-.tab-btn.active { color: var(--text-bright); border-bottom-color: var(--accent); }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-
-/* ── My Keys ────────────────────────── */
-.keys-panel { margin-top: 20px; }
-.key-item {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 16px; margin-bottom: 10px;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; flex-wrap: wrap;
-}
-.key-code {
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    color: var(--accent); font-size: 0.9em; word-break: break-all;
-}
-.key-status {
-    font-size: 0.75em; padding: 3px 10px; border-radius: 10px;
-    white-space: nowrap;
-}
-.key-status.activated { background: rgba(117,234,166,0.15); color: var(--disgust); }
-.key-status.authorized { background: rgba(138,184,255,0.15); color: var(--accent); }
-
-/* ── Toast ──────────────────────────── */
-.toast {
-    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-    background: var(--bg-light); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 12px 24px; color: var(--text-bright);
-    z-index: 3000; font-size: 0.9em;
-    opacity: 0; transition: opacity 0.3s; pointer-events: none;
-}
-.toast.show { opacity: 1; }
-.toast.success { border-color: var(--disgust); }
-.toast.error { border-color: var(--anger); }
-
-/* ── Responsive ─────────────────────── */
-@media (max-width: 640px) {
-    .features-grid, .theme-cards { grid-template-columns: 1fr; }
-    .hero h1 { font-size: 2em; }
-    .section { padding: 60px 16px; }
-    .section:first-of-type { padding-top: 100px; }
-    .navbar { padding: 10px 16px; }
-    .modal { padding: 24px 20px; }
-    .code-display .code { font-size: 1em; }
+.mr-pipeline{
+    height:72px;border-radius:28px;position:relative;
+    background:var(--bg-c);border:1px solid var(--bd);
+    display:flex;align-items:flex-end;justify-content:center;
+    gap:6px;padding:0 24px
 }
 
-/* ── Hidden ─────────────────────────── */
-.hidden { display: none !important; }
-.visible { display: block !important; }
+/* Interactive demo */
+#demo-cv{
+    width:100%;height:300px;border-radius:16px;
+    background:linear-gradient(135deg,#0a0c1a 0%,#11142d 50%,#0c0e22 100%);
+    border:1px solid rgba(255,255,255,0.06);margin:20px 0;
+    cursor:grab;position:relative;overflow:hidden
+}
+#demo-cv:active{cursor:grabbing}
+#demo-cv .pipeline{
+    position:absolute;bottom:30px;left:20px;right:20px;height:60px;
+    border-radius:30px;background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.06);
+    box-shadow:inset 0 2px 12px rgba(100,120,255,0.06)
+}
+#demo-cv .floor{
+    position:absolute;bottom:4px;left:28px;right:28px;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(100,150,255,0.2) 20%,rgba(100,150,255,0.3) 50%,rgba(100,150,255,0.2) 80%,transparent)
+}
+#demo-cv .star{
+    position:absolute;border-radius:50%;background:rgba(255,255,255,0.3);
+    animation:star-tw 3s ease-in-out infinite
+}
+@keyframes star-tw{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
+
+/* Code */
+.code-blk{
+    background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);
+    padding:16px 20px;font-family:'SF Mono','Fira Code',monospace;
+    font-size:.85em;color:var(--ac);overflow-x:auto;margin:16px 0
+}
+
+/* Feature items */
+.f-item{background:var(--bg-c);border:1px solid var(--bd);border-radius:var(--r);padding:20px 24px;margin-bottom:12px}
+.f-item h3{color:var(--tx-b)}
+.f-item p{color:var(--tx-dim);font-size:.85em;margin-top:4px}
+
+/* Steps */
+.steps{margin-top:20px}
+.step{display:flex;align-items:flex-start;gap:16px;padding:16px 0;border-bottom:1px solid var(--bd)}
+.step-num{width:36px;height:36px;border-radius:50%;background:var(--ac-dim);color:var(--tx-b);display:flex;align-items:center;justify-content:center;font-size:.9em;flex-shrink:0}
+.step-body h4{color:var(--tx-b);font-size:.95em}
+.step-body p{color:var(--tx-dim);font-size:.8em;margin-top:2px}
+.step-body code{background:var(--bg2);padding:2px 6px;border-radius:4px;font-size:.85em}
+
+/* Footer */
+.footer{
+    text-align:center;padding:60px 24px;border-top:1px solid var(--bd);
+    color:var(--tx-dim);font-size:.8em
+}
+.footer a{color:var(--ac);text-decoration:none;margin:0 10px}
+.footer a:hover{text-decoration:underline}
+.footer p{margin:6px 0}
+
+/* Modal */
+.mol{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:20px}
+.mol.ac{display:flex}
+.mod{background:var(--bg);border:1px solid var(--bd);border-radius:16px;padding:32px;max-width:440px;width:100%;max-height:90vh;overflow-y:auto;position:relative}
+.mod-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--tx-dim);font-size:1.5em;cursor:pointer}
+.mod-close:hover{color:var(--tx-b)}
+.mod h2{font-size:1.4em;color:var(--tx-b);margin-bottom:8px;text-align:center}
+.mod-desc{color:var(--tx-dim);font-size:.85em;text-align:center;margin-bottom:20px}
+
+/* QR */
+.qr-wrap{text-align:center;margin:16px 0;padding:20px;background:#fff;border-radius:var(--r)}
+.qr-wrap img{max-width:200px;border-radius:8px}
+.qr-wrap p{color:#666;font-size:.8em;margin-top:8px;font-family:'PingFang SC',sans-serif}
+
+/* Code display */
+.code-disp{text-align:center;margin:20px 0;padding:20px;background:var(--bg2);border:1px solid var(--ac-dim);border-radius:var(--r)}
+.code-disp .code-text{font-family:'SF Mono','Fira Code',monospace;font-size:1.3em;color:var(--ac);letter-spacing:2px;word-break:break-all}
+.code-disp .code-label{font-size:.8em;color:var(--tx-dim);margin-bottom:8px}
+
+/* Form */
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:.85em;color:var(--tx-dim);margin-bottom:6px}
+.fg input{width:100%;padding:10px 14px;border-radius:var(--r);background:var(--bg2);border:1px solid var(--bd);color:var(--tx-b);font-family:inherit;font-size:.95em;transition:border-color .2s}
+.fg input:focus{outline:none;border-color:var(--ac-dim)}
+
+/* Tabs */
+.tabs{display:flex;margin-bottom:20px;border-bottom:1px solid var(--bd)}
+.tab-btn{flex:1;padding:10px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:.9em;color:var(--tx-dim);transition:all .2s;border-bottom:2px solid transparent}
+.tab-btn.ac{color:var(--tx-b);border-bottom-color:var(--ac)}
+.tab-c{display:none}.tab-c.ac{display:block}
+
+/* Keys */
+.keys{margin-top:20px}
+.key-it{background:var(--bg-c);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.key-code{font-family:'SF Mono','Fira Code',monospace;color:var(--ac);font-size:.9em;word-break:break-all}
+.key-st{font-size:.75em;padding:3px 10px;border-radius:10px;white-space:nowrap}
+.key-st.activated{background:rgba(117,234,166,0.15);color:var(--dis)}
+.key-st.authorized{background:rgba(138,184,255,0.15);color:var(--ac)}
+
+/* Toast */
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:12px 24px;color:var(--tx-b);z-index:3000;font-size:.9em;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.sh{opacity:1}
+.toast.succ{border-color:var(--dis)}
+.toast.err{border-color:var(--ang)}
+
+/* Responsive */
+@media(max-width:640px){
+    .f-grid,.theme-row{grid-template-columns:1fr}
+    .hero h1{font-size:2em}.sec{padding:60px 16px}.sec:first-of-type{padding-top:100px}
+    .nav{padding:10px 16px}.mod{padding:24px 20px}
+    .code-disp .code-text{font-size:1em}
+}
+
+.hidden{display:none!important}
 </style>
 </head>
 <body>
 
-<!-- ═══════════════ NavBar ═══════════════ -->
-<nav class="navbar">
-    <div class="navbar-logo">🧠 Memory Orbs</div>
-    <div class="navbar-actions">
-        <button class="btn btn-outline" onclick="openModal('login-modal')">登录</button>
-        <button class="btn btn-primary" onclick="openModal('purchase-modal')">购买</button>
+<nav class="nav">
+    <div class="nav-logo">🧠 Memory Orbs</div>
+    <div class="nav-acts">
+        <button class="btn btn-out" onclick="openM('login-modal')">登录</button>
+        <button class="btn btn-pri" onclick="openM('purchase-modal')">购买</button>
     </div>
 </nav>
 
-<!-- ═══════════════ Hero ═══════════════ -->
 <section class="hero" id="top">
     <h1>Memory Orbs<br><span>记忆球</span></h1>
     <p>将日记中的情绪标签变成发光的记忆球 —— 灵感来自《头脑特工队》</p>
-    <div class="hero-buttons">
-        <button class="btn btn-primary btn-lg" onclick="openModal('purchase-modal')">立即购买</button>
-        <a href="#什么是记忆球" class="btn btn-outline">了解更多 ↓</a>
+    <div class="hero-btns">
+        <button class="btn btn-pri btn-lg" onclick="openM('purchase-modal')">立即购买</button>
+        <a href="#what" class="btn btn-out">了解更多 ↓</a>
     </div>
 </section>
 
-<!-- ═══════════════ 什么是记忆球 ═══════════════ -->
-<section class="section" id="什么是记忆球">
+<section class="sec" id="what">
     <h2>什么是记忆球</h2>
-    <p class="section-subtitle">Obsidian 情绪可视化插件</p>
-    <div class="feature-list">
-        <div class="feature-item">
-            <h3>🧠 情绪标签 → 视觉记忆球</h3>
-            <p>在日记中用 <code>#情绪/开心</code> 这样的标签记录心情，插件自动为每种情绪生成一个发光的彩色球体。</p>
-        </div>
-        <div class="feature-item">
-            <h3>🫧 管道式交互</h3>
-            <p>球体在圆角管道中排列、滚动、碰撞，模拟真实的物理效果。拖拽时产生弹性摆动，释放后自动衰减。</p>
-        </div>
-        <div class="feature-item">
-            <h3>📊 数据驱动</h3>
-            <p>统计面板追踪情绪频率、分布和趋势，让你直观了解自己的情绪变化。</p>
-        </div>
-    </div>
+    <p class="sec-sub">Obsidian 情绪可视化插件</p>
+    <div class="f-item"><h3>🧠 情绪标签 → 视觉记忆球</h3><p>在日记中用 #情绪/开心 这样的标签记录心情，插件自动为每种情绪生成一个发光的彩色球体。灵感来自 Pixar《头脑特工队》。</p></div>
+    <div class="f-item"><h3>🫧 管道式交互</h3><p>球体在圆角管道中排列、滚动、碰撞，模拟真实的物理效果。拖拽时产生弹性摆动，释放后自动衰减回原位。</p></div>
+    <div class="f-item"><h3>📊 数据驱动</h3><p>统计面板追踪情绪频率、分布和趋势，让你直观了解自己的情绪变化。</p></div>
 </section>
 
-<!-- ═══════════════ 核心特色 ═══════════════ -->
-<section class="section" id="core-features">
+<section class="sec" id="features">
     <h2>核心特色</h2>
-    <div class="features-grid">
-        <div class="feature-card" onclick="document.getElementById('themes').scrollIntoView({behavior:'smooth'})">
-            <div class="feature-icon">🎨</div>
-            <div class="feature-label">4 种视觉主题</div>
-        </div>
-        <div class="feature-card" onclick="document.getElementById('demo-section').scrollIntoView({behavior:'smooth'})">
-            <div class="feature-icon">🕹️</div>
-            <div class="feature-label">拖拽互动演示</div>
-        </div>
-        <div class="feature-card" onclick="document.getElementById('emotions').scrollIntoView({behavior:'smooth'})">
-            <div class="feature-icon">🎯</div>
-            <div class="feature-label">情绪系统（10种+混合球）</div>
-        </div>
-        <div class="feature-card" onclick="document.getElementById('markdown').scrollIntoView({behavior:'smooth'})">
-            <div class="feature-icon">📝</div>
-            <div class="feature-label">Markdown 嵌入</div>
-        </div>
+    <div class="f-grid">
+        <div class="f-card" onclick="document.getElementById('themes').scrollIntoView({behavior:'smooth'})"><div class="f-icon">🎨</div><div class="f-label">4 种视觉主题</div></div>
+        <div class="f-card" onclick="document.getElementById('demo').scrollIntoView({behavior:'smooth'})"><div class="f-icon">🕹️</div><div class="f-label">拖拽互动演示</div></div>
+        <div class="f-card" onclick="document.getElementById('emotions').scrollIntoView({behavior:'smooth'})"><div class="f-icon">🎯</div><div class="f-label">情绪系统（10种+混合球）</div></div>
+        <div class="f-card" onclick="document.getElementById('markdown').scrollIntoView({behavior:'smooth'})"><div class="f-icon">📝</div><div class="f-label">Markdown 嵌入</div></div>
     </div>
 </section>
 
-<!-- ═══════════════ 情绪系统 ═══════════════ -->
-<section class="section" id="emotions">
+<section class="sec" id="emotions">
     <h2>情绪系统</h2>
-    <p class="section-subtitle">10 种基础情绪 + 合成记忆（混合球）</p>
-    <div class="emotion-chips">
-        <div class="chip"><div class="chip-dot" style="background:var(--joy)"></div> 快乐</div>
-        <div class="chip"><div class="chip-dot" style="background:var(--sadness)"></div> 伤心</div>
-        <div class="chip"><div class="chip-dot" style="background:var(--anger)"></div> 生气</div>
-        <div class="chip"><div class="chip-dot" style="background:var(--disgust)"></div> 讨厌</div>
-        <div class="chip"><div class="chip-dot" style="background:var(--fear)"></div> 害怕</div>
-        <div class="chip"><div class="chip-dot" style="background:var(--anxiety)"></div> 焦虑</div>
-        <div class="chip"><div class="chip-dot" style="background:var(--admire)"></div> 慕慕</div>
-        <div class="chip"><div class="chip-dot" style="background:var(--embarrass)"></div> 尴尬</div>
-        <div class="chip"><div class="chip-dot" style="background:var(--bored)"></div> 无聊</div>
-        <div class="chip"><div class="chip-dot" style="background:var(--nostalgia)"></div> 怀旧</div>
+    <p class="sec-sub">10 种基础情绪 + 合成记忆（混合球）</p>
+    <div class="e-chips">
+        <div class="chip"><div class="chip-dot" style="background:var(--joy)"></div>快乐</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--sad)"></div>伤心</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--ang)"></div>生气</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--dis)"></div>讨厌</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--fea)"></div>害怕</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--anx)"></div>焦虑</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--adm)"></div>慕慕</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--emb)"></div>尴尬</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--bor)"></div>无聊</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--nos)"></div>怀旧</div>
     </div>
-    <div class="synth-box">
-        <div class="synth-item">
-            <div class="synth-dot mixed"></div>
-            <span class="synth-label">合成球（多情绪）</span>
-        </div>
-        <div class="synth-item">
-            <div class="synth-dot core"></div>
-            <span class="synth-label">核心记忆（光晕）</span>
-        </div>
+    <div class="synth">
+        <div class="synth-it"><div class="synth-d mix"></div><span class="synth-l">合成球（多情绪合并）</span></div>
+        <div class="synth-it"><div class="synth-d core"></div><span class="synth-l">核心记忆（脉冲光晕）</span></div>
     </div>
 </section>
 
-<!-- ═══════════════ 四种主题 ═══════════════ -->
-<section class="section" id="themes">
+<!-- ═══════ 四种主题（精准还原插件效果）═══════ -->
+<section class="sec" id="themes">
     <h2>四种主题</h2>
-    <p class="section-subtitle">一键切换，同一批数据不同的氛围</p>
-    <div class="theme-cards">
-        <div class="theme-card">
-            <div class="theme-demo cosmos">
-                <div class="mini-dot" style="background:var(--joy);box-shadow:0 0 10px rgba(251,235,55,0.5)"></div>
-                <div class="mini-dot" style="background:var(--sadness);box-shadow:0 0 10px rgba(138,189,245,0.5)"></div>
-                <div class="mini-dot" style="background:var(--fear);box-shadow:0 0 10px rgba(223,148,255,0.5)"></div>
+    <p class="sec-sub">一键切换，同一批数据不同的氛围</p>
+    <div class="theme-row">
+
+        <!-- Cosmos 星空 -->
+        <div class="t-demo t-cosmos">
+            <div class="mini-pl">
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),var(--joy) 40%,#c9a800 80%,#7a6600);box-shadow:0 0 12px rgba(251,235,55,0.4),inset 0 -2px 6px rgba(0,0,0,0.15)"><div class="in-glow"></div><div class="hi"></div><div class="star-burst"></div><div class="star-burst-v"></div></div>
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),var(--sad) 40%,#5a8ac0 80%,#2d4d70);box-shadow:0 0 12px rgba(138,189,245,0.4),inset 0 -2px 6px rgba(0,0,0,0.15)"><div class="in-glow"></div><div class="hi"></div><div class="star-burst"></div><div class="star-burst-v"></div></div>
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),var(--fea) 40%,#a060c0 80%,#5a1868);box-shadow:0 0 12px rgba(223,148,255,0.4),inset 0 -2px 6px rgba(0,0,0,0.15)"><div class="in-glow"></div><div class="hi"></div><div class="star-burst"></div><div class="star-burst-v"></div></div>
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),var(--ang) 40%,#c05040 80%,#5a1810);box-shadow:0 0 12px rgba(255,145,133,0.4),inset 0 -2px 6px rgba(0,0,0,0.15)"><div class="in-glow"></div><div class="hi"></div><div class="star-burst"></div><div class="star-burst-v"></div></div>
             </div>
-            <div class="theme-name">🌌 Cosmos · 星空</div>
+            <div class="t-name">🌌 Cosmos · 星空</div>
         </div>
-        <div class="theme-card">
-            <div class="theme-demo classic">
-                <div class="mini-dot" style="background:var(--joy)"></div>
-                <div class="mini-dot" style="background:var(--sadness)"></div>
-                <div class="mini-dot" style="background:var(--anger)"></div>
+
+        <!-- Classic 经典 -->
+        <div class="t-demo t-classic">
+            <div class="mini-pl">
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.7),var(--joy) 40%,#c9a800 80%,#7a6600);box-shadow:0 0 12px rgba(251,235,55,0.4),inset 0 -3px 8px rgba(0,0,0,0.1),inset 0 3px 8px rgba(255,255,255,0.3)"><div class="in-glow"></div><div class="hi"></div></div>
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.7),var(--dis) 40%,#4a9070 80%,#1a4028);box-shadow:0 0 12px rgba(117,234,166,0.4),inset 0 -3px 8px rgba(0,0,0,0.1),inset 0 3px 8px rgba(255,255,255,0.3)"><div class="in-glow"></div><div class="hi"></div></div>
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.7),var(--sad) 40%,#5a8ac0 80%,#2d4d70);box-shadow:0 0 12px rgba(138,189,245,0.4),inset 0 -3px 8px rgba(0,0,0,0.1),inset 0 3px 8px rgba(255,255,255,0.3)"><div class="in-glow"></div><div class="hi"></div></div>
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.7),var(--anx) 40%,#c07020 80%,#5a3008);box-shadow:0 0 12px rgba(255,169,71,0.4),inset 0 -3px 8px rgba(0,0,0,0.1),inset 0 3px 8px rgba(255,255,255,0.3)"><div class="in-glow"></div><div class="hi"></div></div>
             </div>
-            <div class="theme-name">📦 Classic · 经典</div>
+            <div class="t-name">📦 Classic · 经典</div>
         </div>
-        <div class="theme-card">
-            <div class="theme-demo sketch">
-                <div class="mini-dot" style="background:var(--disgust)"></div>
-                <div class="mini-dot" style="background:var(--fear)"></div>
-                <div class="mini-dot" style="background:var(--anxiety)"></div>
+
+        <!-- Sketch 手绘 -->
+        <div class="t-demo t-sketch">
+            <div class="mini-pl">
+                <div class="mini-orb"><div class="in-glow"></div><div class="hi"></div></div>
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,#fff,var(--ang) 40%,#b04030 80%,#501008);box-shadow:2px 3px 0 rgba(80,60,40,0.15)!important"><div class="in-glow"></div><div class="hi"></div></div>
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,#fff,var(--joy) 40%,#c9a800 80%,#7a6600);box-shadow:2px 3px 0 rgba(80,60,40,0.15)!important"><div class="in-glow"></div><div class="hi"></div></div>
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,#fff,var(--sad) 40%,#5a8ac0 80%,#2d4d70);box-shadow:2px 3px 0 rgba(80,60,40,0.15)!important"><div class="in-glow"></div><div class="hi"></div></div>
             </div>
-            <div class="theme-name">✏️ Sketch · 手绘</div>
+            <div class="t-name">✏️ Sketch · 手绘</div>
         </div>
-        <div class="theme-card">
-            <div class="theme-demo glass">
-                <div class="mini-dot" style="background:var(--admire);opacity:0.8"></div>
-                <div class="mini-dot" style="background:var(--embarrass);opacity:0.7"></div>
-                <div class="mini-dot" style="background:var(--joy);opacity:0.6"></div>
+
+        <!-- Glass 磨砂玻璃 -->
+        <div class="t-demo t-glass">
+            <div class="mini-pl">
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.7),var(--fea) 40%,#a060c0 80%,#5a1868);box-shadow:0 0 10px rgba(223,148,255,0.3),inset 0 0 14px rgba(223,148,255,0.08),0 3px 12px rgba(0,0,0,0.06)"><div class="in-glow"></div><div class="hi"></div></div>
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.7),var(--adm) 40%,#00c090 80%,#005030);box-shadow:0 0 10px rgba(26,255,209,0.3),inset 0 0 14px rgba(26,255,209,0.08),0 3px 12px rgba(0,0,0,0.06)"><div class="in-glow"></div><div class="hi"></div></div>
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.7),var(--joy) 40%,#c9a800 80%,#7a6600);box-shadow:0 0 10px rgba(251,235,55,0.3),inset 0 0 14px rgba(251,235,55,0.08),0 3px 12px rgba(0,0,0,0.06)"><div class="in-glow"></div><div class="hi"></div></div>
+                <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.7),var(--emb) 40%,#c06080 80%,#502028);box-shadow:0 0 10px rgba(255,168,212,0.3),inset 0 0 14px rgba(255,168,212,0.08),0 3px 12px rgba(0,0,0,0.06)"><div class="in-glow"></div><div class="hi"></div></div>
             </div>
-            <div class="theme-name">🪟 Glass · 磨砂玻璃</div>
+            <div class="t-name">🪟 Glass · 磨砂玻璃</div>
         </div>
+
     </div>
 </section>
 
-<!-- ═══════════════ 多排管道 ═══════════════ -->
-<section class="section" id="pipeline">
+<!-- ═══════ 多排管道 ═══════ -->
+<section class="sec" id="pipeline">
     <h2>多排管道</h2>
-    <p class="section-subtitle">球数超过一排时自动换行，每根管道独立运作</p>
-    <div class="feature-list">
-        <div class="feature-item">
-            <h3>🔄 自动换行</h3>
-            <p>超出单排容量后，自动创建下一根管道，无需手动设置。</p>
+    <p class="sec-sub">球数超过一排时自动换行，每根管道独立运作</p>
+    <div class="multi-row-demo">
+        <div class="mr-pipeline">
+            <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),var(--joy) 40%,#c9a800 80%,#7a6600);box-shadow:0 0 12px rgba(251,235,55,0.4),inset 0 -2px 6px rgba(0,0,0,0.15)"><div class="in-glow"></div><div class="hi"></div></div>
+            <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),var(--sad) 40%,#5a8ac0 80%,#2d4d70);box-shadow:0 0 12px rgba(138,189,245,0.4),inset 0 -2px 6px rgba(0,0,0,0.15)"><div class="in-glow"></div><div class="hi"></div></div>
+            <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),var(--ang) 40%,#c05040 80%,#5a1810);box-shadow:0 0 12px rgba(255,145,133,0.4),inset 0 -2px 6px rgba(0,0,0,0.15)"><div class="in-glow"></div><div class="hi"></div></div>
+            <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),var(--dis) 40%,#4a9070 80%,#1a4028);box-shadow:0 0 12px rgba(117,234,166,0.4),inset 0 -2px 6px rgba(0,0,0,0.15)"><div class="in-glow"></div><div class="hi"></div></div>
+            <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),var(--fea) 40%,#a060c0 80%,#5a1868);box-shadow:0 0 12px rgba(223,148,255,0.4),inset 0 -2px 6px rgba(0,0,0,0.15)"><div class="in-glow"></div><div class="hi"></div></div>
         </div>
-        <div class="feature-item">
-            <h3>🎯 独立布局</h3>
-            <p>每根管道独立管理球体位置，物理引擎确保排列整齐。</p>
+        <div class="mr-pipeline">
+            <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),var(--anx) 40%,#c07020 80%,#5a3008);box-shadow:0 0 12px rgba(255,169,71,0.4),inset 0 -2px 6px rgba(0,0,0,0.15)"><div class="in-glow"></div><div class="hi"></div></div>
+            <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),var(--adm) 40%,#00c090 80%,#005030);box-shadow:0 0 12px rgba(26,255,209,0.4),inset 0 -2px 6px rgba(0,0,0,0.15)"><div class="in-glow"></div><div class="hi"></div></div>
+            <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),var(--emb) 40%,#c06080 80%,#502028);box-shadow:0 0 12px rgba(255,168,212,0.4),inset 0 -2px 6px rgba(0,0,0,0.15)"><div class="in-glow"></div><div class="hi"></div></div>
+            <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),var(--bor) 40%,#4a6080 80%,#1a2830);box-shadow:0 0 12px rgba(111,148,184,0.4),inset 0 -2px 6px rgba(0,0,0,0.15)"><div class="in-glow"></div><div class="hi"></div></div>
+            <div class="mini-orb" style="background:radial-gradient(circle at 35% 25%,rgba(255,255,255,0.5),var(--nos) 40%,#888 80%,#333);box-shadow:0 0 12px rgba(204,204,204,0.4),inset 0 -2px 6px rgba(0,0,0,0.15)"><div class="in-glow"></div><div class="hi"></div></div>
         </div>
     </div>
+    <div class="f-item"><h3>🔄 自动换行</h3><p>超出单排容量后，自动创建下一根管道，每根独立运作，物理引擎确保排列整齐。</p></div>
 </section>
 
-<!-- ═══════════════ Markdown 嵌入 ═══════════════ -->
-<section class="section" id="markdown">
+<section class="sec" id="markdown">
     <h2>Markdown 嵌入</h2>
-    <p class="section-subtitle">在任何笔记中用代码块插入记忆球管道</p>
-    <div class="code-block">
-        ```memory-orbs<br>
-        type: pipeline<br>
-        emotions: 快乐, 伤心, 焦虑<br>
-        theme: cosmos<br>
-        ```
-    </div>
-    <p style="color:var(--text-dim);font-size:0.85em;text-align:center;margin-top:12px;">复制到 Obsidian 中即可看到可视化管道 ✨</p>
+    <p class="sec-sub">在任何笔记中用代码块插入记忆球管道</p>
+    <div class="code-blk">```memory-orbs<br>type: pipeline<br>emotions: 快乐, 伤心, 焦虑<br>theme: cosmos<br>```</div>
+    <p style="color:var(--tx-dim);font-size:.85em;text-align:center;margin-top:12px">复制到 Obsidian 中即可看到可视化管道 ✨</p>
 </section>
 
-<!-- ═══════════════ 互动演示 ═══════════════ -->
-<section class="section" id="demo-section">
+<!-- ═══════ 互动演示 ═══════ -->
+<section class="sec" id="demo">
     <h2>互动演示</h2>
-    <p class="section-subtitle">拖拽记忆球体验物理效果</p>
-    <div id="demo-canvas"></div>
-    <p style="color:var(--text-dim);font-size:0.8em;text-align:center;">拖拽小球，观察弹性摆动和碰撞 ✦</p>
+    <p class="sec-sub">拖拽记忆球体验真实的物理碰撞效果</p>
+    <div id="demo-cv">
+        <div class="pipeline"></div>
+        <div class="floor"></div>
+    </div>
+    <p style="color:var(--tx-dim);font-size:.8em;text-align:center">✦ 拖拽小球观察弹性摆动、碰撞和衰减 ✦</p>
 </section>
 
-<!-- ═══════════════ 开始使用 ═══════════════ -->
-<section class="section" id="start">
+<section class="sec" id="start">
     <h2>开始使用</h2>
     <div class="steps">
-        <div class="step">
-            <div class="step-num">1</div>
-            <div class="step-body">
-                <h4>安装 BRAT 插件</h4>
-                <p>在 Obsidian 社区插件市场搜索 BRAT 并安装</p>
-            </div>
-        </div>
-        <div class="step">
-            <div class="step-num">2</div>
-            <div class="step-body">
-                <h4>添加 Memory Orbs</h4>
-                <p>BRAT → Add Beta Plugin → 输入 <code style="background:var(--bg-light);padding:2px 6px;border-radius:4px;font-size:0.85em;">https://gitee.com/housiyuan123/memory-orbs-user</code></p>
-            </div>
-        </div>
-        <div class="step">
-            <div class="step-num">3</div>
-            <div class="step-body">
-                <h4>获取激活码</h4>
-                <p>点击上方「购买」按钮，扫码获取激活码</p>
-            </div>
-        </div>
-        <div class="step">
-            <div class="step-num">4</div>
-            <div class="step-body">
-                <h4>开始记录心情！</h4>
-                <p>在日记中使用 #情绪/开心 等标签，打开管道视图查看你的记忆球</p>
-            </div>
-        </div>
+        <div class="step"><div class="step-num">1</div><div class="step-body"><h4>安装 BRAT 插件</h4><p>在 Obsidian 社区插件市场搜索 BRAT 并安装</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><h4>添加 Memory Orbs</h4><p>BRAT → Add Beta Plugin → 输入 <code>https://gitee.com/housiyuan123/memory-orbs-user</code></p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><h4>获取激活码</h4><p>点击上方「购买」按钮，扫码获取激活码</p></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-body"><h4>开始记录心情！</h4><p>在日记中使用 #情绪/开心 等标签，打开管道视图查看你的记忆球</p></div></div>
     </div>
 </section>
 
-<!-- ═══════════════ Footer ═══════════════ -->
 <footer class="footer">
-    <p>
-        <a href="https://gitee.com/housiyuan123/memory-orbs-dev" target="_blank">Gitee 开发者仓库</a>
-        <a href="https://qm.qq.com/q/1092571911" target="_blank">QQ 群 1092571911</a>
-        <a href="https://b23.tv/a89jLec" target="_blank">B站 骰子xCosmology</a>
-    </p>
-    <p style="margin-top:10px;">灵感来自 Pixar《头脑特工队》</p>
-    <p>字体 SmileySans-Oblique（得意黑斜体）由 <a href="https://github.com/atelier-anchor/smiley-sans" target="_blank">atelier-anchor</a> 开源，SIL Open Font License 1.1</p>
+    <p><a href="https://gitee.com/housiyuan123/memory-orbs-dev" target="_blank">Gitee 开发者仓库</a> <a href="https://qm.qq.com/q/1092571911" target="_blank">QQ 群 1092571911</a> <a href="https://b23.tv/a89jLec" target="_blank">B站 骰子xCosmology</a></p>
+    <p style="margin-top:10px">灵感来自 Pixar《头脑特工队》</p>
+    <p>字体 SmileySans-Oblique 由 <a href="https://github.com/atelier-anchor/smiley-sans" target="_blank">atelier-anchor</a> 开源，SIL OFL 1.1</p>
 </footer>
 
-<!-- ════════════════════════════════════════ -->
-<!--             MODALS                      -->
-<!-- ════════════════════════════════════════ -->
+<!-- ═══════════════ MODALS ═══════════════ -->
 
-<!-- ── Purchase Modal ──────────────────── -->
-<div class="modal-overlay" id="purchase-modal">
-<div class="modal">
-    <button class="modal-close" onclick="closeModal('purchase-modal')">&times;</button>
-    <h2>购买 Memory Orbs</h2>
-    <p class="modal-desc">扫码付款后填写邮箱，即可获取激活码</p>
-
-    <!-- 步骤1：扫码 -->
-    <div id="purchase-step-1">
+<!-- Purchase -->
+<div class="mol" id="purchase-modal"><div class="mod">
+    <button class="mod-close" onclick="closeM('purchase-modal')">&times;</button>
+    <h2>购买 Memory Orbs</h2><p class="mod-desc">扫码付款后填写邮箱，即可获取激活码</p>
+    <div id="ps1">
         <div class="qr-wrap">
-            <img src="./alipay-qr.png" alt="支付宝收款码" style="width:200px;height:200px;margin:0 auto;display:block;border-radius:8px;">
+            <img src="./alipay-qr.png" alt="支付宝收款码" style="width:200px;height:200px;display:block;margin:0 auto;border-radius:8px">
             <p>请使用支付宝扫码付款</p>
-            <p style="font-size:0.7em;color:#999;">建议支付金额：¥5.99（买断制）</p>
+            <p style="font-size:.7em;color:#999">建议支付金额：¥5.99（买断制）</p>
         </div>
-
-        <div class="form-group">
-            <label>你的邮箱</label>
-            <input type="email" id="purchase-email" placeholder="请输入接收激活码的邮箱">
-        </div>
-
-        <button class="btn btn-primary btn-block" onclick="handlePurchase()">我已付款，获取激活码</button>
+        <div class="fg"><label>你的邮箱</label><input type="email" id="p-email" placeholder="请输入接收激活码的邮箱"></div>
+        <button class="btn btn-pri btn-blk" onclick="doPurchase()">我已付款，获取激活码</button>
     </div>
-
-    <!-- 步骤2：显示激活码 -->
-    <div id="purchase-step-2" class="hidden">
-        <div class="code-display">
-            <div class="code-label">你的激活码</div>
-            <div class="code" id="purchase-code"></div>
-            <button class="btn btn-outline btn-sm" style="margin-top:12px;" onclick="copyCode('purchase-code')">📋 复制激活码</button>
-        </div>
-        <p style="text-align:center;color:var(--text-dim);font-size:0.8em;">激活码也已显示在此处，建议 <a href="javascript:void(0)" onclick="closeModal('purchase-modal');openModal('login-modal');" style="color:var(--accent);">注册账号</a> 保存</p>
-        <button class="btn btn-outline btn-block" style="margin-top:12px;" onclick="closeModal('purchase-modal')">关闭</button>
+    <div id="ps2" class="hidden">
+        <div class="code-disp"><div class="code-label">你的激活码</div><div class="code-text" id="p-code"></div><button class="btn btn-out btn-sm" style="margin-top:12px" onclick="copyC('p-code')">📋 复制激活码</button></div>
+        <p style="text-align:center;color:var(--tx-dim);font-size:.8em">建议 <a href="javascript:void(0)" onclick="closeM('purchase-modal');openM('login-modal')" style="color:var(--ac)">注册账号</a> 保存密钥</p>
+        <button class="btn btn-out btn-blk" style="margin-top:12px" onclick="closeM('purchase-modal')">关闭</button>
     </div>
-</div>
-</div>
+</div></div>
 
-<!-- ── Login/Register Modal ───────────── -->
-<div class="modal-overlay" id="login-modal">
-<div class="modal">
-    <button class="modal-close" onclick="closeModal('login-modal')">&times;</button>
-
+<!-- Login/Register -->
+<div class="mol" id="login-modal"><div class="mod">
+    <button class="mod-close" onclick="closeM('login-modal')">&times;</button>
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('login-tab', this)">登录</button>
-        <button class="tab-btn" onclick="switchTab('register-tab', this)">注册</button>
+        <button class="tab-btn ac" onclick="swTab('login-tab',this)">登录</button>
+        <button class="tab-btn" onclick="swTab('register-tab',this)">注册</button>
     </div>
-
-    <!-- 登录 -->
-    <div class="tab-content active" id="login-tab">
-        <div class="form-group">
-            <label>邮箱</label>
-            <input type="email" id="login-email" placeholder="你的邮箱">
-        </div>
-        <div class="form-group">
-            <label>密码</label>
-            <input type="password" id="login-password" placeholder="你的密码">
-        </div>
-        <button class="btn btn-primary btn-block" onclick="handleLogin()">登录</button>
+    <div class="tab-c ac" id="login-tab">
+        <div class="fg"><label>邮箱</label><input type="email" id="l-email" placeholder="你的邮箱"></div>
+        <div class="fg"><label>密码</label><input type="password" id="l-pw" placeholder="你的密码"></div>
+        <button class="btn btn-pri btn-blk" onclick="doLogin()">登录</button>
     </div>
-
-    <!-- 注册 -->
-    <div class="tab-content" id="register-tab">
-        <div class="form-group">
-            <label>邮箱</label>
-            <input type="email" id="register-email" placeholder="接收激活码的邮箱">
-        </div>
-        <div class="form-group">
-            <label>密码（至少 6 位）</label>
-            <input type="password" id="register-password" placeholder="设置密码">
-        </div>
-        <button class="btn btn-primary btn-block" onclick="handleRegister()">注册</button>
+    <div class="tab-c" id="register-tab">
+        <div class="fg"><label>邮箱</label><input type="email" id="r-email" placeholder="接收激活码的邮箱"></div>
+        <div class="fg"><label>密码（至少 6 位）</label><input type="password" id="r-pw" placeholder="设置密码"></div>
+        <button class="btn btn-pri btn-blk" onclick="doRegister()">注册</button>
     </div>
-</div>
-</div>
+</div></div>
 
-<!-- ── My Keys Modal ──────────────────── -->
-<div class="modal-overlay" id="keys-modal">
-<div class="modal">
-    <button class="modal-close" onclick="closeModal('keys-modal')">&times;</button>
-    <h2>我的密钥</h2>
-    <div class="keys-panel" id="keys-list">
-        <p style="color:var(--text-dim);text-align:center;">加载中...</p>
-    </div>
-    <button class="btn btn-outline btn-block" style="margin-top:16px;" onclick="handleLogout()">退出登录</button>
-</div>
-</div>
+<!-- Keys -->
+<div class="mol" id="keys-modal"><div class="mod">
+    <button class="mod-close" onclick="closeM('keys-modal')">&times;</button>
+    <h2>我的密钥</h2><div class="keys" id="keys-list"><p style="color:var(--tx-dim);text-align:center">加载中...</p></div>
+    <button class="btn btn-out btn-blk" style="margin-top:16px" onclick="doLogout()">退出登录</button>
+</div></div>
 
-<!-- ── Toast ──────────────────────────── -->
 <div class="toast" id="toast"></div>
 
-<!-- ════════════════════════════════════════ -->
-<!--             SCRIPTS                     -->
-<!-- ════════════════════════════════════════ -->
 <script>
-const API = 'https://memory-orbs-activation.531442151.workers.dev';
+const API='https://memory-orbs-activation.531442151.workers.dev';
 
-// ── Modal ──────────────────────────────────
-function openModal(id) {
-    document.getElementById(id).classList.add('active');
+function openM(id){document.getElementById(id).classList.add('ac')}
+function closeM(id){document.getElementById(id).classList.remove('ac');if(id==='purchase-modal'){document.getElementById('ps1').classList.remove('hidden');document.getElementById('ps2').classList.add('hidden')}}
+document.querySelectorAll('.mol').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('ac')}));
+
+function swTab(id,btn){
+    document.querySelectorAll('#login-modal .tab-c').forEach(t=>t.classList.remove('ac'));
+    document.querySelectorAll('#login-modal .tab-btn').forEach(b=>b.classList.remove('ac'));
+    document.getElementById(id).classList.add('ac');btn.classList.add('ac')
 }
-function closeModal(id) {
-    document.getElementById(id).classList.remove('active');
-    if (id === 'purchase-modal') {
-        document.getElementById('purchase-step-1').classList.remove('hidden');
-        document.getElementById('purchase-step-2').classList.add('hidden');
+
+let tt;function toast(msg,ty){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+ty+' sh';clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('sh'),3000)}
+function copyC(id){navigator.clipboard.writeText(document.getElementById(id).textContent.trim()).then(()=>toast('已复制！','succ'))}
+
+async function doPurchase(){
+    const e=document.getElementById('p-email').value.trim();
+    if(!e||!e.includes('@')){toast('请输入有效邮箱','err');return}
+    try{
+        const r=await fetch(API+'/purchase',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})});
+        const d=await r.json();
+        if(d.success){document.getElementById('p-code').textContent=d.code;document.getElementById('ps1').classList.add('hidden');document.getElementById('ps2').classList.remove('hidden')}
+        else toast('失败: '+(d.reason||''),'err')
+    }catch{toast('网络错误','err')}
+}
+
+async function doRegister(){
+    const e=document.getElementById('r-email').value.trim(),p=document.getElementById('r-pw').value;
+    if(!e||!e.includes('@')){toast('请输入有效邮箱','err');return}
+    if(!p||p.length<6){toast('密码至少6位','err');return}
+    try{
+        const r=await fetch(API+'/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p})});
+        const d=await r.json();
+        if(d.success){toast('注册成功！请登录','succ');document.querySelector('#login-modal .tab-btn').click()}
+        else toast('注册失败: '+(d.reason||''),'err')
+    }catch{toast('网络错误','err')}
+}
+
+async function doLogin(){
+    const e=document.getElementById('l-email').value.trim(),p=document.getElementById('l-pw').value;
+    if(!e||!p){toast('请填写完整','err');return}
+    try{
+        const r=await fetch(API+'/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p})});
+        const d=await r.json();
+        if(d.success){localStorage.setItem('mo_tk',d.token);localStorage.setItem('mo_em',d.email);closeM('login-modal');toast('登录成功！','succ');loadKeys()}
+        else toast('登录失败: '+(d.reason||''),'err')
+    }catch{toast('网络错误','err')}
+}
+
+function doLogout(){localStorage.removeItem('mo_tk');localStorage.removeItem('mo_em');closeM('keys-modal');toast('已退出','succ')}
+
+async function loadKeys(){
+    const tk=localStorage.getItem('mo_tk');if(!tk)return;
+    try{
+        const r=await fetch(API+'/my-keys',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tk})});
+        const d=await r.json();
+        const el=document.getElementById('keys-list');
+        if(d.keys&&d.keys.length>0){el.innerHTML=d.keys.map(k=>`<div class="key-it"><span class="key-code">${k.code}</span><span class="key-st ${k.status}">${k.status==='activated'?'已激活':'可使用'}</span><button class="btn btn-out btn-sm" onclick="navigator.clipboard.writeText('${k.code}').then(()=>toast('已复制','succ'))">复制</button></div>`).join('')}
+        else el.innerHTML='<p style="color:var(--tx-dim);text-align:center">暂无密钥，请先购买</p>'
+        openM('keys-modal')
+    }catch{toast('获取失败','err')}
+}
+
+(function(){
+    const tk=localStorage.getItem('mo_tk');
+    if(tk){const b=document.querySelector('.nav-acts .btn-out');if(b){b.textContent='我的密钥';b.setAttribute('onclick','loadKeys()')}}
+})();
+
+// ── Interactive Canvas Demo (matching plugin physics) ──
+(function(){
+    const cv=document.getElementById('demo-cv');if(!cv)return;
+    class Orb{
+        constructor(x,y,c){this.x=x;this.y=y;this.vx=0;this.vy=0;this.r=26;this.color=c;this.mass=Math.PI*26*26/10000}
     }
-}
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', function(e) {
-        if (e.target === this) this.classList.remove('active');
-    });
-});
+    const orbs=[],colors=['#fbeb37','#8abdf5','#ff9185','#75eaa6','#df94ff','#ffa947'];
+    const G=0.18,FR=0.94,BO=0.65,RES=0.75,DF=0.85,WF=0.55,SNAPT=2;
+    let w,h,anim,dragging=null,dx=0,dy=0,lastX=0,lastY=0;
+    
+    function resize(){
+        const r=cv.getBoundingClientRect();w=r.width;h=r.height;
+        const plH=h-30,floorY=plH-30;
+        if(!orbs.length){for(let i=0;i<6;i++){orbs.push(new Orb(60+i*70,floorY-26,colors[i]))}}
+    }
+    resize();window.addEventListener('resize',resize);
 
-// ── Tabs ───────────────────────────────────
-function switchTab(tabId, btn) {
-    document.querySelectorAll('#login-modal .tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('#login-modal .tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    btn.classList.add('active');
-}
+    function draw(){
+        const c=cv.getContext('2d');if(!c)return;
+        c.clearRect(0,0,w,h);
+        const plH=h-30,floorY=plH-30;
+        // Draw pipeline
+        c.save();
+        c.beginPath();c.roundRect(18,plH-62,w-36,62,30);c.fillStyle='rgba(255,255,255,0.03)';c.fill();
+        c.strokeStyle='rgba(255,255,255,0.06)';c.lineWidth=1;c.stroke();c.restore();
+        // Floor
+        c.beginPath();c.moveTo(42,floorY+4);c.lineTo(w-42,floorY+4);
+        c.strokeStyle='rgba(100,150,255,0.25)';c.lineWidth=1;c.stroke();
 
-// ── Toast ──────────────────────────────────
-let toastTimer;
-function showToast(msg, type) {
-    const t = document.getElementById('toast');
-    t.textContent = msg; t.className = 'toast ' + type + ' show';
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-// ── Copy ───────────────────────────────────
-function copyCode(id) {
-    const el = document.getElementById(id);
-    navigator.clipboard.writeText(el.textContent.trim()).then(() => {
-        showToast('已复制到剪贴板！', 'success');
-    });
-}
-
-// ── Purchase ──────────────────────────────
-async function handlePurchase() {
-    const email = document.getElementById('purchase-email').value.trim();
-    if (!email) { showToast('请输入邮箱', 'error'); return; }
-    if (!email.includes('@')) { showToast('邮箱格式不正确', 'error'); return; }
-
-    try {
-        const res = await fetch(API + '/purchase', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-        });
-        const data = await res.json();
-        if (data.success) {
-            document.getElementById('purchase-code').textContent = data.code;
-            document.getElementById('purchase-step-1').classList.add('hidden');
-            document.getElementById('purchase-step-2').classList.remove('hidden');
-        } else {
-            showToast('获取失败: ' + (data.reason || '未知错误'), 'error');
+        for(const o of orbs){
+            if(o!==dragging){o.vy-=G;o.x+=o.vx;o.y+=o.vy;o.vx*=FR;o.vy*=WF;if(o.y>floorY-o.r){o.y=floorY-o.r;o.vy*=-BO;o.vy=Math.abs(o.vy)<.5?0:o.vy}if(o.x-o.r<20){o.x=20+o.r;o.vx*=-BO}if(o.x+o.r>w-20){o.x=w-20-o.r;o.vx*=-BO}}
         }
-    } catch (e) {
-        showToast('网络错误，请稍后重试', 'error');
-    }
-}
-
-// ── Register ──────────────────────────────
-async function handleRegister() {
-    const email = document.getElementById('register-email').value.trim();
-    const password = document.getElementById('register-password').value;
-
-    if (!email || !email.includes('@')) { showToast('请输入有效邮箱', 'error'); return; }
-    if (!password || password.length < 6) { showToast('密码至少 6 位', 'error'); return; }
-
-    try {
-        const res = await fetch(API + '/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
-        const data = await res.json();
-        if (data.success) {
-            showToast('注册成功！请登录', 'success');
-            document.querySelectorAll('#login-modal .tab-btn')[0].click();
-        } else {
-            showToast('注册失败: ' + (data.reason || ''), 'error');
-        }
-    } catch (e) {
-        showToast('网络错误，请稍后重试', 'error');
-    }
-}
-
-// ── Login ─────────────────────────────────
-async function handleLogin() {
-    const email = document.getElementById('login-email').value.trim();
-    const password = document.getElementById('login-password').value;
-
-    if (!email || !password) { showToast('请填写完整信息', 'error'); return; }
-
-    try {
-        const res = await fetch(API + '/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
-        const data = await res.json();
-        if (data.success) {
-            localStorage.setItem('mo_token', data.token);
-            localStorage.setItem('mo_email', data.email);
-            closeModal('login-modal');
-            showToast('登录成功！', 'success');
-            loadMyKeys();
-        } else {
-            showToast('登录失败: ' + (data.reason || ''), 'error');
-        }
-    } catch (e) {
-        showToast('网络错误', 'error');
-    }
-}
-
-// ── Logout ────────────────────────────────
-function handleLogout() {
-    localStorage.removeItem('mo_token');
-    localStorage.removeItem('mo_email');
-    closeModal('keys-modal');
-    showToast('已退出登录', 'success');
-}
-
-// ── My Keys ───────────────────────────────
-async function loadMyKeys() {
-    const token = localStorage.getItem('mo_token');
-    if (!token) return;
-
-    try {
-        const res = await fetch(API + '/my-keys', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token })
-        });
-        const data = await res.json();
-        const listEl = document.getElementById('keys-list');
-        if (data.keys && data.keys.length > 0) {
-            listEl.innerHTML = data.keys.map(k => `
-                <div class="key-item">
-                    <span class="key-code">${k.code}</span>
-                    <span class="key-status ${k.status}">${k.status === 'activated' ? '已激活' : '可使用'}</span>
-                    <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText('${k.code}').then(()=>showToast('已复制','success'))">复制</button>
-                </div>
-            `).join('');
-        } else {
-            listEl.innerHTML = '<p style="color:var(--text-dim);text-align:center;">暂无密钥，请先购买</p>';
-        }
-        openModal('keys-modal');
-    } catch (e) {
-        showToast('获取密钥失败', 'error');
-    }
-}
-
-// ── NavBar 登录状态 ───────────────────────
-function updateNav() {
-    const token = localStorage.getItem('mo_token');
-    if (token) {
-        const loginBtn = document.querySelector('.navbar-actions .btn-outline');
-        if (loginBtn) {
-            loginBtn.textContent = '我的密钥';
-            loginBtn.setAttribute('onclick', 'loadMyKeys()');
-        }
-    }
-}
-updateNav();
-
-// ── Interactive Demo ──────────────────────
-(function() {
-    const canvas = document.getElementById('demo-canvas');
-    const ctx = canvas.getContext ? null : null;
-    if (!canvas.getContext) return;
-
-    function resize() {
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-    }
-    resize();
-    window.addEventListener('resize', resize);
-
-    const balls = [];
-    const colors = ['#fbeb37','#8abdf5','#ff9185','#75eaa6','#df94ff','#ffa947'];
-    const GRAVITY = 0.3;
-    const BOUNCE = 0.6;
-    const FRICTION = 0.98;
-    const RADIUS = 28;
-
-    for (let i = 0; i < 6; i++) {
-        balls.push({
-            x: Math.random() * (canvas.width - 80) + 40,
-            y: Math.random() * (canvas.height - 100) + 40,
-            vx: (Math.random() - 0.5) * 3,
-            vy: 0,
-            r: RADIUS,
-            color: colors[i]
-        });
-    }
-
-    let dragging = null, dragX = 0, dragY = 0;
-
-    canvas.addEventListener('mousedown', e => {
-        const rect = canvas.getBoundingClientRect();
-        const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-        for (const b of balls) {
-            if (Math.hypot(mx - b.x, my - b.y) < b.r) {
-                dragging = b; dragX = mx - b.x; dragY = my - b.y;
-                b.vx = 0; b.vy = 0; break;
+        for(let i=0;i<orbs.length;i++)for(let j=i+1;j<orbs.length;j++){
+            const a=orbs[i],b=orbs[j];if(a===dragging||b===dragging)continue;
+            const dx2=b.x-a.x,dy2=b.y-a.y,dist=Math.hypot(dx2,dy2);
+            if(dist<a.r+b.r&&dist>0){
+                const nx=dx2/dist,ny=dy2/dist,overlap=a.r+b.r-dist;
+                const mr=a.mass/(a.mass+b.mass);
+                a.x-=nx*overlap*(1-mr);a.y-=ny*overlap*(1-mr);
+                b.x+=nx*overlap*mr;b.y+=ny*overlap*mr;
+                const rv=(a.vx-b.vx)*nx+(a.vy-b.vy)*ny;
+                if(rv>0){a.vx-=rv*nx;a.vy-=rv*ny;b.vx+=rv*nx;b.vy+=rv*ny}
             }
         }
-    });
-
-    canvas.addEventListener('mousemove', e => {
-        if (!dragging) return;
-        const rect = canvas.getBoundingClientRect();
-        dragging.x = e.clientX - rect.left - dragX;
-        dragging.y = e.clientY - rect.top - dragY;
-    });
-
-    canvas.addEventListener('mouseup', () => { dragging = null; });
-    canvas.addEventListener('mouseleave', () => { dragging = null; });
-
-    function draw() {
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = canvas.getBoundingClientRect().width * dpr;
-        canvas.height = canvas.getBoundingClientRect().height * dpr;
-        const c = canvas.getContext('2d');
-        if (!c) return;
-        c.scale(dpr, dpr);
-        const w = canvas.width / dpr, h = canvas.height / dpr;
-        c.clearRect(0, 0, w, h);
-        c.fillStyle = 'rgba(255,255,255,0.02)';
-        c.fillRect(0, 0, w, h);
-
-        for (const b of balls) {
-            if (b === dragging) continue;
-            b.vy += GRAVITY;
-            b.x += b.vx; b.y += b.vy;
-            b.vx *= FRICTION; b.vy *= FRICTION;
-            if (b.y + b.r > h) { b.y = h - b.r; b.vy *= -BOUNCE; }
-            if (b.y - b.r < 0) { b.y = b.r; b.vy *= -BOUNCE; }
-            if (b.x + b.r > w) { b.x = w - b.r; b.vx *= -BOUNCE; }
-            if (b.x - b.r < 0) { b.x = b.r; b.vx *= -BOUNCE; }
-        }
-
-        for (let i = 0; i < balls.length; i++) {
-            for (let j = i + 1; j < balls.length; j++) {
-                const a = balls[i], b = balls[j];
-                if (a === dragging || b === dragging) continue;
-                const dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy);
-                if (dist < a.r + b.r) {
-                    const nx = dx / dist, ny = dy / dist;
-                    const overlap = a.r + b.r - dist;
-                    a.x -= nx * overlap / 2; a.y -= ny * overlap / 2;
-                    b.x += nx * overlap / 2; b.y += ny * overlap / 2;
-                    const relV = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
-                    if (relV > 0) {
-                        a.vx -= relV * nx; a.vy -= relV * ny;
-                        b.vx += relV * nx; b.vy += relV * ny;
-                    }
-                }
+        for(const o of orbs){
+            if(o.vx>SNAPT||o.vx<-SNAPT||Math.abs(o.y-(floorY-o.r))>1)continue;
+            if(orbs.every(b=>b===o||(Math.abs(b.vx)<.03&&Math.abs(b.y-(floorY-b.r))<1))){
+                o.vx=o.vy=0;o.y=floorY-o.r;
             }
         }
-
-        for (const b of balls) {
-            const r = b.r;
-            c.beginPath();
-            c.arc(b.x, b.y, r, 0, Math.PI * 2);
-            c.fillStyle = b.color;
-            c.fill();
+        for(const o of orbs){
             c.save();
-            c.beginPath();
-            c.arc(b.x, b.y, r, 0, Math.PI * 2);
-            c.clip();
-            const grad = c.createRadialGradient(b.x - r*0.25, b.y - r*0.35, r*0.1, b.x, b.y, r);
-            grad.addColorStop(0, 'rgba(255,255,255,0.4)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.15)');
-            c.fillStyle = grad; c.fill();
+            // Shadow
+            c.beginPath();c.arc(o.x,o.y,o.r,0,Math.PI*2);
+            c.fillStyle=o.color;c.shadowColor=o.color;c.shadowBlur=15;c.fill();
+            c.shadowBlur=0;
+            // Gradient overlay
+            const grad=c.createRadialGradient(o.x-o.r*.25,o.y-o.r*.35,o.r*.1,o.x,o.y,o.r);
+            grad.addColorStop(0,'rgba(255,255,255,0.45)');grad.addColorStop(1,'rgba(0,0,0,0.2)');
+            c.fillStyle=grad;c.fill();
+            // Highlight
+            c.beginPath();c.arc(o.x-o.r*.25,o.y-o.r*.3,o.r*.12,0,Math.PI*2);
+            c.fillStyle='rgba(255,255,255,0.55)';c.fill();
+            // Starburst cross (Cosmos effect)
+            c.save();
+            c.translate(o.x,o.y);
+            c.beginPath();c.rect(-o.r*.42,-.5,o.r*.84,1);c.fillStyle='rgba(255,255,255,0.2)';c.fill();
+            c.beginPath();c.rect(-.5,-o.r*.42,1,o.r*.84);c.fillStyle='rgba(255,255,255,0.2)';c.fill();
             c.restore();
-            c.beginPath();
-            c.arc(b.x - r*0.25, b.y - r*0.3, r*0.12, 0, Math.PI*2);
-            c.fillStyle = 'rgba(255,255,255,0.7)'; c.fill();
+            // Outline
+            c.beginPath();c.arc(o.x,o.y,o.r,0,Math.PI*2);
+            c.strokeStyle='rgba(255,255,255,0.3)';c.lineWidth=2;c.stroke();
+            c.restore();
         }
-
-        requestAnimationFrame(draw);
+        anim=requestAnimationFrame(draw);
     }
+
+    cv.addEventListener('mousedown',e=>{
+        const mx=e.clientX-cv.getBoundingClientRect().left,my=e.clientY-cv.getBoundingClientRect().top;
+        for(let i=orbs.length-1;i>=0;i--){const o=orbs[i];if(Math.hypot(mx-o.x,my-o.y)<o.r*1.2){dragging=o;dx=mx-o.x;dy=my-o.y;o.vx=o.vy=0;lastX=mx;lastY=my;break}}
+    });
+    cv.addEventListener('mousemove',e=>{
+        if(!dragging)return;
+        const mx=e.clientX-cv.getBoundingClientRect().left,my=e.clientY-cv.getBoundingClientRect().top;
+        dragging.x=mx-dx;dragging.vx=(mx-lastX)*DF;dragging.vy=(my-lastY)*DF;lastX=mx;lastY=my;
+        const floorY=(h-30)-30;
+        if(dragging.y+dragging.r>floorY){dragging.y=floorY-dragging.r;dragging.vy=0}
+    });
+    cv.addEventListener('mouseup',()=>{dragging=null});
+    cv.addEventListener('mouseleave',()=>{dragging=null});
+
+    // Touch support
+    cv.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];const mx=t.clientX-cv.getBoundingClientRect().left,my=t.clientY-cv.getBoundingClientRect().top;for(let i=orbs.length-1;i>=0;i--){const o=orbs[i];if(Math.hypot(mx-o.x,my-o.y)<o.r*1.2){dragging=o;dx=mx-o.x;dy=my-o.y;o.vx=o.vy=0;break}}},{passive:false});
+    cv.addEventListener('touchmove',e=>{e.preventDefault();if(!dragging)return;const t=e.touches[0];const mx=t.clientX-cv.getBoundingClientRect().left,my=t.clientY-cv.getBoundingClientRect().top;dragging.x=mx-dx;dragging.vx=(mx-lastX)*DF;dragging.vy=(my-lastY)*DF;lastX=mx;lastY=my},{passive:false});
+    cv.addEventListener('touchend',()=>{dragging=null});
+
     draw();
 })();
 </script>
