@@ -1,0 +1,161 @@
+name: Temporary Common Crawl DCS-930L recovery
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Search Common Crawl and archived mirrors
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out/pages
+          python3 -m pip install --quiet requests warcio beautifulsoup4
+          python3 - <<'PY' 2>&1 | tee out/commoncrawl.log
+          import hashlib, io, json, os, re, sys, urllib.parse, zipfile
+          import requests
+          from bs4 import BeautifulSoup
+          from warcio.archiveiterator import ArchiveIterator
+
+          EXPECTED='31f11d8a7f938ddd78aec361063245a4'
+          TARGET='dcs930l_v108_b4.bin'
+          OUT='out/DCS-930L_FIRMWARE_1.08_B4.ZIP'
+          BIN='out/'+TARGET
+          s=requests.Session(); s.headers.update({'User-Agent':'Mozilla/5.0'})
+          found=False; page_count=0; direct_candidates=set()
+
+          def log(*a): print(*a,flush=True)
+          def validate(data,src):
+            global found
+            try:
+              if len(data)<100000: return False
+              if zipfile.is_zipfile(io.BytesIO(data)):
+                z=zipfile.ZipFile(io.BytesIO(data)); names=z.namelist()
+                md5=hashlib.md5(data).hexdigest()
+                log('ZIP',src,len(data),md5,names)
+                match=next((n for n in names if os.path.basename(n).lower()==TARGET),None)
+                if match:
+                  open(OUT,'wb').write(data); open(BIN,'wb').write(z.read(match)); found=True
+                  return True
+              # Some archives store the raw firmware only.
+              if data[:4] != b'<htm' and data[:15].lower().find(b'<!doctype')<0 and len(data)>2_000_000:
+                low=src.lower()
+                if TARGET in low or ('dcs-930l' in low and any(x in low for x in ['1.08','108','b4'])):
+                  open(BIN,'wb').write(data); found=True
+                  log('RAW FIRMWARE candidate',src,len(data),hashlib.md5(data).hexdigest())
+                  return True
+            except Exception as e: log('validate error',src,e)
+            return False
+
+          def process_html(data,src):
+            global page_count
+            try: text=data.decode('utf-8','replace')
+            except Exception: return
+            if not any(k in text.lower() for k in ['dcs-930l','dcs930l','softpedia','rebyte']): return
+            page_count+=1; path=f'out/pages/page-{page_count:03d}.html'; open(path,'w',encoding='utf-8').write(text)
+            log('SAVED HTML',src,path,len(text))
+            soup=BeautifulSoup(text,'html.parser')
+            for tag in soup.find_all(['a','form','iframe','script','meta']):
+              vals=[]
+              for attr in ['href','action','src','content','onclick']:
+                if tag.get(attr): vals.append(tag.get(attr))
+              for raw in vals:
+                for u in re.findall(r'https?://[^\s"\'<>]+',raw): direct_candidates.add(u.replace('&amp;','&'))
+                if raw.startswith(('/', './','../','http')):
+                  u=urllib.parse.urljoin(src,raw.replace('&amp;','&'))
+                  low=u.lower()
+                  if any(k in low for k in ['download','.zip','.bin','postdownload','dlinfo','file-591872','firmware']): direct_candidates.add(u)
+            # Raw URL strings and escaped URLs in scripts.
+            for u in re.findall(r'https?:\\?/\\?/[^\s"\'<>]+',text):
+              direct_candidates.add(u.replace('\\/','/').replace('&amp;','&'))
+            # Softpedia form parameters are valuable for its download endpoint.
+            for pat in [r'var\s+spjs_prog_tsf\s*=\s*([^;]+)',r'popup6_open\((\{.*?\})\)',r'itemprop=["\']downloadUrl["\'][^>]{0,1000}']:
+              for m in re.findall(pat,text,re.I|re.S): log('SOFTPEDIA PARAM',str(m)[:2000])
+
+          try:
+            indexes=s.get('https://index.commoncrawl.org/collinfo.json',timeout=30).json()
+          except Exception as e: log('collinfo error',e); indexes=[]
+          ids=[x['id'] for x in indexes]
+          # Prefer collections near the firmware's release, then newer collections.
+          ids=sorted(ids,key=lambda x:(0 if any(y in x for y in ['2013','2014','2015','2016','2017','2018','2019','2020']) else 1,x),reverse=False)
+          queries=[
+            ('http://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP','exact'),
+            ('https://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP','exact'),
+            ('http://support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP','exact'),
+            ('http://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/','prefix'),
+            ('http://support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/','prefix'),
+            ('https://drivers.softpedia.com/get/FIRMWARE/D-Link/D-Link-DCS-930L-Camera-Firmware-108.shtml','exact'),
+            ('http://drivers.softpedia.com/get/FIRMWARE/D-Link/D-Link-DCS-930L-Camera-Firmware-108.shtml','exact'),
+            ('https://rebyte.me/en/d-link/63506/file-591872/','exact'),
+            ('http://rebyte.me/en/d-link/63506/file-591872/','exact'),
+          ]
+          records=[]; record_keys=set()
+          for iid in ids:
+            if found or len(records)>250: break
+            for q,match in queries:
+              try:
+                params={'url':q,'output':'json','filter':'status:200'}
+                if match!='exact': params['matchType']=match
+                r=s.get(f'https://index.commoncrawl.org/{iid}-index',params=params,timeout=20)
+                if r.status_code!=200 or not r.text.strip(): continue
+                lines=r.text.splitlines(); log('INDEX',iid,q,match,'records',len(lines))
+                for line in lines:
+                  try: rec=json.loads(line)
+                  except Exception: continue
+                  key=(rec.get('filename'),rec.get('offset'),rec.get('length'))
+                  if key in record_keys: continue
+                  record_keys.add(key); records.append(rec)
+              except Exception as e: log('index error',iid,q,e)
+          log('TOTAL RECORDS',len(records))
+          # Prioritize likely ZIP/binary records, then mirror pages.
+          records.sort(key=lambda r:(0 if any(k in r.get('url','').lower() for k in ['.zip','.bin']) else 1, r.get('timestamp','')))
+          for i,rec in enumerate(records):
+            if found: break
+            try:
+              start=int(rec['offset']); length=int(rec['length'])
+              rr=s.get('https://data.commoncrawl.org/'+rec['filename'],headers={'Range':f'bytes={start}-{start+length-1}'},timeout=60)
+              log('WARC',i,rec.get('url'),rr.status_code,len(rr.content),rec.get('mime'))
+              if rr.status_code not in (200,206): continue
+              for record in ArchiveIterator(io.BytesIO(rr.content)):
+                if record.rec_type!='response': continue
+                payload=record.content_stream().read(); src=rec.get('url','')
+                if validate(payload,src): break
+                process_html(payload,src)
+            except Exception as e: log('WARC error',i,e)
+
+          # Fetch URLs discovered in archived pages, including legacy direct mirrors.
+          if not found:
+            log('DISCOVERED URLS',len(direct_candidates))
+            candidates=sorted(direct_candidates,key=lambda u:(0 if any(x in u.lower() for x in ['.zip','.bin','postdownload']) else 1,u))
+            for i,u in enumerate(candidates[:250]):
+              if found: break
+              try:
+                r=s.get(u,timeout=30,allow_redirects=True,verify=False)
+                log('CANDIDATE',i,u,'->',r.status_code,len(r.content),r.url,r.headers.get('content-type'))
+                if r.status_code==200 and validate(r.content,r.url): break
+                if r.status_code==200 and 'html' in r.headers.get('content-type','').lower(): process_html(r.content,r.url)
+              except Exception as e: log('candidate error',u,e)
+
+          if found:
+            checks=[]
+            for p in [OUT,BIN]:
+              if os.path.exists(p):
+                d=open(p,'rb').read(); checks.append(f'MD5 {hashlib.md5(d).hexdigest()}  {os.path.basename(p)}'); checks.append(f'SHA256 {hashlib.sha256(d).hexdigest()}  {os.path.basename(p)}')
+            open('out/checksums.txt','w').write('\n'.join(checks)+'\n')
+            log('SUCCESS',checks)
+          else: log('NOT FOUND')
+          PY
+      - name: Upload Common Crawl output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dcs930l-commoncrawl-output
+          path: out
+          retention-days: 1
