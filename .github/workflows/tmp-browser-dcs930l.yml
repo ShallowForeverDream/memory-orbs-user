@@ -1,0 +1,146 @@
+name: Temporary browser DCS-930L recovery
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Inspect mirror download flows in Chromium
+        shell: bash
+        run: |
+          set +e
+          mkdir -p out
+          python3 -m pip install --quiet playwright requests
+          cat > /tmp/recover.py <<'PY'
+          import asyncio, hashlib, io, json, os, re, zipfile
+          import requests
+          from playwright.async_api import async_playwright
+
+          TARGET='dcs930l_v108_b4.bin'
+          EXPECTED='31f11d8a7f938ddd78aec361063245a4'
+          OUT='out/DCS-930L_FIRMWARE_1.08_B4.ZIP'
+          BIN='out/'+TARGET
+          logs=[]
+
+          def log(*a):
+              s=' '.join(str(x) for x in a); print(s,flush=True); logs.append(s)
+
+          def validate(data,src):
+              try:
+                  if len(data)<100000 or not zipfile.is_zipfile(io.BytesIO(data)): return False
+                  z=zipfile.ZipFile(io.BytesIO(data)); names=z.namelist(); md5=hashlib.md5(data).hexdigest()
+                  log('ZIP',src,len(data),md5,names)
+                  n=next((x for x in names if os.path.basename(x).lower()==TARGET),None)
+                  if not n: return False
+                  open(OUT,'wb').write(data); open(BIN,'wb').write(z.read(n)); return True
+              except Exception as e: log('validate error',src,e); return False
+
+          async def attempt(page,url,label):
+              captured=[]
+              async def response_handler(resp):
+                  try:
+                      u=resp.url; ct=(resp.headers.get('content-type') or '').lower(); cd=(resp.headers.get('content-disposition') or '').lower()
+                      if any(k in u.lower() for k in ['.zip','.bin','download','postdownload','file-591872','dlinfo']) or 'attachment' in cd or 'zip' in ct:
+                          log(label,'RESP',resp.status,u,ct,cd)
+                          if resp.status==200:
+                              try:
+                                  data=await resp.body()
+                                  if validate(data,u): captured.append(True)
+                              except Exception as e: log('body error',u,e)
+                  except Exception as e: log('response handler error',e)
+              page.on('response',response_handler)
+              try:
+                  await page.goto(url,wait_until='domcontentloaded',timeout=60000)
+              except Exception as e: log(label,'goto',e)
+              for delay in [5000,10000,15000]:
+                  await page.wait_for_timeout(delay)
+                  try:
+                      title=await page.title(); html=await page.content()
+                      open(f'out/{label}-{delay}.html','w',encoding='utf-8').write(html)
+                      await page.screenshot(path=f'out/{label}-{delay}.png',full_page=True)
+                      log(label,'STATE',delay,title,page.url,len(html))
+                      links=await page.eval_on_selector_all('a','els => els.map(e => ({t:(e.innerText||e.textContent||"").trim(),h:e.href,o:e.getAttribute("onclick")})).filter(x=>x.t||x.h)')
+                      buttons=await page.eval_on_selector_all('button,input','els => els.map(e => ({tag:e.tagName,t:(e.innerText||e.value||e.textContent||"").trim(),o:e.getAttribute("onclick"),type:e.type})).filter(x=>x.t||x.o)')
+                      open(f'out/{label}-{delay}.json','w').write(json.dumps({'url':page.url,'title':title,'links':links,'buttons':buttons},ensure_ascii=False,indent=2))
+                      for x in links+buttons:
+                          st=json.dumps(x,ensure_ascii=False)
+                          if any(k in st.lower() for k in ['download','.zip','dcs930l','dcs-930l','postdownload','dlinfo']): log(label,'ELEMENT',st[:1200])
+                  except Exception as e: log(label,'inspect error',e)
+                  if captured: return True
+                  # Try visible download controls and Turnstile-like checkboxes.
+                  selectors=[
+                    'text=/download now/i','text=/free download/i','text=/download d-link/i',
+                    'a[itemprop="downloadUrl"]','[onclick*="popup6_open"]','a[href*="download"]','button:has-text("Download")',
+                    'input[type="checkbox"]'
+                  ]
+                  for sel in selectors:
+                      try:
+                          loc=page.locator(sel)
+                          count=await loc.count()
+                          for i in range(min(count,5)):
+                              el=loc.nth(i)
+                              if await el.is_visible():
+                                  log(label,'CLICK',sel,i)
+                                  try:
+                                      async with page.expect_download(timeout=12000) as di:
+                                          await el.click(force=True,timeout=5000)
+                                      dl=await di.value; p=await dl.path(); data=open(p,'rb').read()
+                                      log(label,'DOWNLOAD',dl.suggested_filename,len(data),dl.url)
+                                      if validate(data,dl.url): return True
+                                  except Exception as e:
+                                      log(label,'click result',sel,e)
+                                      try: await el.click(force=True,timeout=3000)
+                                      except Exception: pass
+                                      await page.wait_for_timeout(5000)
+                                      if captured: return True
+                      except Exception: pass
+                  # Click inside challenge checkbox iframe if present.
+                  for fr in page.frames:
+                      try:
+                          cb=fr.locator('input[type="checkbox"],label,body')
+                          if await cb.count():
+                              txt=(await fr.locator('body').inner_text(timeout=2000))[:500]
+                              if any(k in txt.lower() for k in ['verify','human','not a bot','success']):
+                                  log(label,'FRAME',fr.url,txt)
+                                  try: await fr.locator('input[type="checkbox"]').click(force=True,timeout=3000)
+                                  except Exception: pass
+                      except Exception: pass
+              return bool(captured)
+
+          async def main():
+              async with async_playwright() as p:
+                  browser=await p.chromium.launch(executable_path='/usr/bin/google-chrome',headless=False,args=['--no-sandbox','--disable-dev-shm-usage','--disable-blink-features=AutomationControlled','--window-size=1440,1200'])
+                  context=await browser.new_context(accept_downloads=True,viewport={'width':1440,'height':1200},locale='en-US',timezone_id='America/New_York',user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36')
+                  await context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
+                  page=await context.new_page()
+                  ok=await attempt(page,'https://rebyte.me/en/d-link/63506/file-591872/','rebyte')
+                  if not ok:
+                      await page.close(); page=await context.new_page()
+                      ok=await attempt(page,'https://drivers.softpedia.com/get/FIRMWARE/D-Link/D-Link-DCS-930L-Camera-Firmware-108.shtml','softpedia')
+                  # Try all observed URLs with browser cookies via requests.
+                  cookies=await context.cookies(); jar={c['name']:c['value'] for c in cookies}
+                  await browser.close()
+                  if os.path.exists(OUT): ok=True
+                  log('RESULT',ok,'cookies',list(jar))
+              if os.path.exists(OUT):
+                  z=open(OUT,'rb').read(); b=open(BIN,'rb').read()
+                  open('out/checksums.txt','w').write(f'MD5 {hashlib.md5(z).hexdigest()}  {os.path.basename(OUT)}\nSHA256 {hashlib.sha256(z).hexdigest()}  {os.path.basename(OUT)}\nMD5 {hashlib.md5(b).hexdigest()}  {TARGET}\nSHA256 {hashlib.sha256(b).hexdigest()}  {TARGET}\n')
+              open('out/browser.log','w').write('\n'.join(logs)+'\n')
+
+          asyncio.run(main())
+          PY
+          xvfb-run -a python3 /tmp/recover.py
+      - name: Upload browser recovery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dcs930l-browser-output
+          path: out
+          retention-days: 1
