@@ -1,0 +1,81 @@
+name: Temporary D-Link legacy resource probe
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect legacy product resources
+        shell: bash
+        run: |
+          set +e
+          mkdir -p out/assets
+          python3 -m pip install --quiet requests beautifulsoup4
+          python3 - <<'PY' 2>&1 | tee out/probe.log
+          import json, os, re, urllib.parse
+          import requests
+          from bs4 import BeautifulSoup
+
+          s=requests.Session(); s.headers['User-Agent']='Mozilla/5.0'
+          roots=[
+            'https://legacy.us.dlink.com/',
+            'http://legacy.us.dlink.com/',
+            'https://legacy.us.dlink.com/pages/product.aspx?id=DCS-930L',
+            'https://legacy.us.dlink.com/pages/product.aspx?pid=DCS-930L',
+            'https://legacy.us.dlink.com/products/?pid=DCS-930L',
+            'https://legacy.us.dlink.com/products/dcs-930l',
+            'https://legacy.us.dlink.com/DCS-930L',
+            'https://legacy.us.dlink.com/resource/PRODUCTS/DCS-930L/REVA/',
+            'https://legacy.us.dlink.com/resource/products/DCS-930L/REVA/',
+            'https://legacy.us.dlink.com/robots.txt',
+            'https://legacy.us.dlink.com/sitemap.xml',
+          ]
+          seen=set(); queue=list(roots)
+          for idx in range(80):
+            if not queue: break
+            url=queue.pop(0)
+            if url in seen: continue
+            seen.add(url)
+            try:
+              r=s.get(url,timeout=20,allow_redirects=True)
+              print('GET',url,'->',r.status_code,len(r.content),r.url,r.headers.get('content-type'))
+            except Exception as e:
+              print('ERR',url,e); continue
+            name=f'out/assets/{len(seen):03d}.txt'
+            open(name,'wb').write(r.content)
+            text=r.content.decode('utf-8','replace')
+            if re.search(r'DCS[-_ ]?930L|1\.08|v108|B4|firmware',text,re.I):
+              print('MATCH',url)
+              for m in re.finditer(r'.{0,250}(?:DCS[-_ ]?930L|1\.08|v108|B4|firmware).{0,500}',text,re.I|re.S):
+                print(re.sub(r'\s+',' ',m.group(0))[:1000])
+            if 'html' in r.headers.get('content-type','').lower() or '<html' in text[:1000].lower():
+              soup=BeautifulSoup(text,'html.parser')
+              for tag,attr in [('a','href'),('script','src'),('link','href'),('form','action')]:
+                for el in soup.find_all(tag):
+                  raw=el.get(attr)
+                  if not raw: continue
+                  u=urllib.parse.urljoin(r.url,raw)
+                  low=u.lower()
+                  if u.startswith('http') and ('legacy.us.dlink.com' in low or 'dlink.com' in low):
+                    if any(k in low for k in ['.js','.json','.xml','product','resource','download','firmware','support','api','dcs-930l','dcs930l']):
+                      queue.append(u)
+            for u in re.findall(r'https?://[^\s"\'<>]+',text):
+              low=u.lower()
+              if ('dlink' in low and any(k in low for k in ['dcs-930l','dcs930l','firmware','resource'])):
+                print('URL',u)
+          open('out/seen.txt','w').write('\n'.join(sorted(seen)))
+          PY
+      - name: Upload legacy probe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dcs930l-legacy-probe
+          path: out
+          retention-days: 1
