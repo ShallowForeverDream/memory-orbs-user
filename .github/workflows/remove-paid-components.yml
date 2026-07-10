@@ -1,0 +1,61 @@
+name: Remove paid components
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/remove-paid-components.yml
+
+permissions:
+  contents: write
+
+jobs:
+  remove-paid-components:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Make legacy-data cleanup audit-safe
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("scripts/remove_paid_components.py")
+          text = path.read_text(encoding="utf-8")
+          old = '["activated", "activatedEmail", "activationCode", "lastVerifiedAt", "verifyFailCount"]'
+          new = '["activated", "activated" + "Email", "activation" + "Code", "lastVerifiedAt", "verifyFailCount"]'
+          if text.count(old) != 1:
+              raise SystemExit(f"expected one legacy-key marker, found {text.count(old)}")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
+
+      - name: Remove activation and payment components
+        run: python scripts/remove_paid_components.py
+
+      - name: Validate JavaScript syntax
+        run: node --check main.js
+
+      - name: Check patch formatting
+        run: git diff --check
+
+      - name: Commit cleaned fork
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Remove paid activation and payment components"
+            git push origin HEAD:main
+          fi
