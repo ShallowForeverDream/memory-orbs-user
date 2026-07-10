@@ -1,0 +1,45 @@
+name: Temporary Jina firmware probe
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch cached page representations
+        shell: bash
+        run: |
+          set +e
+          mkdir -p out
+          urls=(
+            'https://r.jina.ai/http://rebyte.me/en/d-link/63506/file-591872/'
+            'https://r.jina.ai/http://drivers.softpedia.com/get/FIRMWARE/D-Link/D-Link-DCS-930L-Camera-Firmware-108.shtml'
+            'https://r.jina.ai/http://legacy.us.dlink.com/'
+            'https://r.jina.ai/http://tsd.dlink.com.tw/'
+            'https://r.jina.ai/http://files.dlink.com.au/products/DCS-930L/REV_A/'
+            'https://r.jina.ai/http://ftp.dlink.ru/pub/Multimedia/DCS-930L/'
+            'https://r.jina.ai/http://ftp.dlink.de/dcs/dcs-930l/'
+          )
+          i=0
+          for u in "${urls[@]}"; do
+            echo "===== $u" | tee -a out/log.txt
+            curl -k -L --connect-timeout 5 --max-time 40 -A 'Mozilla/5.0' -D "out/$i.headers" -o "out/$i.txt" "$u"
+            rc=$?
+            echo "rc=$rc size=$(wc -c < out/$i.txt 2>/dev/null || echo 0)" | tee -a out/log.txt
+            grep -Eio '.{0,180}(DCS-930L|dcs930l|1\.08|108_b4|download|\.zip|\.bin|href|url=).{0,320}' "out/$i.txt" | head -300 > "out/$i-interesting.txt"
+            cat "out/$i-interesting.txt" | tee -a out/log.txt
+            i=$((i+1))
+          done
+      - name: Upload probe results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dcs930l-jina-probe
+          path: out
+          retention-days: 1
