@@ -1,0 +1,147 @@
+name: Temporary Softpedia DCS-930L fetch
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Query mirror API and download validated firmware
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 -m pip install --quiet requests beautifulsoup4
+          python3 - <<'PY' 2>&1 | tee out/softpedia.log
+          import hashlib, io, json, os, re, urllib.parse, zipfile
+          import requests
+          from bs4 import BeautifulSoup
+
+          PAGE='https://drivers.softpedia.com/get/FIRMWARE/D-Link/D-Link-DCS-930L-Camera-Firmware-108.shtml'
+          TARGET='dcs930l_v108_b4.bin'
+          EXPECTED='31f11d8a7f938ddd78aec361063245a4'
+          OUT='out/DCS-930L_FIRMWARE_1.08_B4.ZIP'
+          BIN='out/'+TARGET
+          s=requests.Session(); s.headers.update({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36','Accept-Language':'en-US,en;q=0.9'})
+          seen=set(); found=False
+
+          def log(*a): print(*a,flush=True)
+          def validate(data,src):
+            global found
+            try:
+              if len(data)<100000 or not zipfile.is_zipfile(io.BytesIO(data)): return False
+              z=zipfile.ZipFile(io.BytesIO(data)); names=z.namelist(); md5=hashlib.md5(data).hexdigest()
+              log('ZIP',src,'size',len(data),'md5',md5,'names',names)
+              n=next((x for x in names if os.path.basename(x).lower()==TARGET),None)
+              if not n: return False
+              open(OUT,'wb').write(data); open(BIN,'wb').write(z.read(n)); found=True
+              return True
+            except Exception as e: log('VALIDATE ERR',src,e); return False
+
+          def get(url,referer=PAGE,method='GET',data=None):
+            if (method,url,str(data)) in seen: return None
+            seen.add((method,url,str(data)))
+            try:
+              h={'Referer':referer,'Origin':'https://drivers.softpedia.com'}
+              r=s.request(method,url,data=data,headers=h,timeout=60,allow_redirects=True)
+              log(method,url,'->',r.status_code,len(r.content),r.url,r.headers.get('Content-Type'),r.headers.get('Content-Disposition'))
+              return r
+            except Exception as e: log('REQ ERR',method,url,e); return None
+
+          page=get(PAGE,referer='https://drivers.softpedia.com/')
+          if page is not None: open('out/page.html','wb').write(page.content)
+
+          payload={'t':'15','y':'25','id':'275427','tsf':'0','skipa':'0'}
+          info=get('https://drivers.softpedia.com/_xaja/dlinfo.php',method='POST',data=payload)
+          if info is not None:
+            open('out/dlinfo.html','wb').write(info.content)
+            text=info.text
+            log('DLINFO TEXT',re.sub(r'\s+',' ',text)[:12000])
+          else: text=''
+
+          candidates=[]
+          def add(u,ref=PAGE,method='GET',data=None):
+            if not u: return
+            u=urllib.parse.urljoin('https://drivers.softpedia.com/',u.replace('&amp;','&'))
+            candidates.append((u,ref,method,data))
+
+          soup=BeautifulSoup(text,'html.parser')
+          for tag in soup.find_all(['a','form','button','input','script']):
+            for attr in ['href','action','formaction','src','data-url','data-href','onclick']:
+              raw=tag.get(attr)
+              if not raw: continue
+              for u in re.findall(r'https?://[^\s"\'<>]+|/[A-Za-z0-9_./?&=%:+-]+',raw):
+                low=u.lower()
+                if any(k in low for k in ['download','postdownload','dyn-','mirror','dlinfo','.zip','.bin']): add(u,info.url if info else PAGE)
+          # Extract all URL-like strings from HTML/JS, including escaped JSON.
+          normalized=text.replace('\\/','/').replace('\\u0026','&')
+          for u in re.findall(r'https?://[^\s"\'<>]+|/[A-Za-z0-9_./?&=%:+-]+',normalized):
+            low=u.lower()
+            if any(k in low for k in ['download','postdownload','dyn-','mirror','.zip','.bin']): add(u,info.url if info else PAGE)
+
+          # Inspect forms and submit them with their hidden fields.
+          for form in soup.find_all('form'):
+            action=urllib.parse.urljoin(info.url if info else PAGE,form.get('action') or '')
+            fields={}
+            for inp in form.find_all(['input','button']):
+              if inp.get('name'): fields[inp.get('name')]=inp.get('value','')
+            log('FORM',form.get('method'),action,fields)
+            candidates.append((action,info.url if info else PAGE,(form.get('method') or 'GET').upper(),fields))
+
+          # Softpedia historically uses these endpoints; preserve page-specific params when present.
+          for idx,(u,ref,method,data) in enumerate(candidates[:200]):
+            if found: break
+            low=u.lower()
+            # Do not follow unrelated ad/search destinations.
+            if not any(host in urllib.parse.urlparse(u).netloc for host in ['softpedia.com','softpedia-static.com','softpedia-secure.com','softpedia.net']):
+              continue
+            r=get(u,ref,method,data)
+            if r is None: continue
+            open(f'out/candidate-{idx}.bin','wb').write(r.content)
+            if r.status_code==200 and validate(r.content,r.url): break
+            ct=(r.headers.get('Content-Type') or '').lower()
+            if r.status_code==200 and ('html' in ct or r.content[:100].lstrip().lower().startswith(b'<!doctype')):
+              h=r.text.replace('\\/','/')
+              log('CAND HTML',idx,re.sub(r'\s+',' ',h)[:8000])
+              ss=BeautifulSoup(h,'html.parser')
+              for a in ss.find_all(['a','form']):
+                raw=a.get('href') or a.get('action')
+                if raw:
+                  v=urllib.parse.urljoin(r.url,raw.replace('&amp;','&'))
+                  if any(k in v.lower() for k in ['download','postdownload','dyn-','.zip','.bin']):
+                    x=get(v,r.url,(a.get('method') or 'GET').upper(),{i.get('name'):i.get('value','') for i in a.find_all('input') if i.get('name')})
+                    if x is not None and x.status_code==200 and validate(x.content,x.url): break
+
+          # Also invoke any explicit JavaScript fetch/XMLHttpRequest URL with discovered arguments.
+          if not found:
+            for endpoint in ['/_xaja/dlcnt.php','/_xaja/dllink.php','/dyn-postdownload.php','/dyn-postdownload.php?source=1']:
+              r=get(urllib.parse.urljoin(PAGE,endpoint),PAGE,'POST',{'id':'275427','t':'15','y':'25','tsf':'0'})
+              if r is not None:
+                open('out/fallback-'+endpoint.strip('/').replace('/','_').replace('?','_')+'.bin','wb').write(r.content)
+                if r.status_code==200 and validate(r.content,r.url): break
+
+          if found:
+            zd=open(OUT,'rb').read(); bd=open(BIN,'rb').read()
+            lines=[
+              f'MD5 {hashlib.md5(zd).hexdigest()}  {os.path.basename(OUT)}',
+              f'SHA256 {hashlib.sha256(zd).hexdigest()}  {os.path.basename(OUT)}',
+              f'MD5 {hashlib.md5(bd).hexdigest()}  {os.path.basename(BIN)}',
+              f'SHA256 {hashlib.sha256(bd).hexdigest()}  {os.path.basename(BIN)}',
+            ]
+            open('out/checksums.txt','w').write('\n'.join(lines)+'\n'); log('SUCCESS',lines)
+          else:
+            log('NOT FOUND')
+          PY
+      - name: Upload Softpedia result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dcs930l-softpedia-output
+          path: out
+          retention-days: 1
