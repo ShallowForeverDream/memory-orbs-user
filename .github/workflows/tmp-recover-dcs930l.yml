@@ -1,0 +1,333 @@
+name: Temporary DCS-930L archive recovery
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Recover and validate archive
+        shell: bash
+        run: |
+          set +e
+          mkdir -p out
+          python3 -m pip install --quiet requests beautifulsoup4 warcio
+          python3 - <<'PY' 2>&1 | tee out/recovery.log
+          import gzip
+          import hashlib
+          import io
+          import json
+          import os
+          import re
+          import shutil
+          import sys
+          import time
+          import urllib.parse
+          import zipfile
+
+          import requests
+          from bs4 import BeautifulSoup
+          from warcio.archiveiterator import ArchiveIterator
+
+          OUT = 'out/DCS-930L_FIRMWARE_1.08_B4.ZIP'
+          BIN_OUT = 'out/dcs930l_v108_b4.bin'
+          EXPECTED_MD5 = '31f11d8a7f938ddd78aec361063245a4'
+          TARGET_BIN = 'dcs930l_v108_b4.bin'
+          UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36'
+          s = requests.Session()
+          s.headers.update({'User-Agent': UA, 'Accept': '*/*'})
+          seen = set()
+
+          def log(msg):
+              print(msg, flush=True)
+
+          def validate_bytes(data, source):
+              try:
+                  if len(data) < 100000 or not data.startswith(b'PK'):
+                      return False
+                  z = zipfile.ZipFile(io.BytesIO(data))
+                  names = z.namelist()
+                  if not any(os.path.basename(n).lower() == TARGET_BIN for n in names):
+                      log(f'[reject] ZIP missing target: {source} -> {names}')
+                      return False
+                  md5 = hashlib.md5(data).hexdigest()
+                  log(f'[candidate] {source} size={len(data)} md5={md5} names={names}')
+                  if md5 != EXPECTED_MD5:
+                      log(f'[reject] expected MD5 {EXPECTED_MD5}')
+                      return False
+                  open(OUT, 'wb').write(data)
+                  name = next(n for n in names if os.path.basename(n).lower() == TARGET_BIN)
+                  open(BIN_OUT, 'wb').write(z.read(name))
+                  return True
+              except Exception as e:
+                  log(f'[validate error] {source}: {e}')
+                  return False
+
+          def fetch(url, timeout=20, referer=None):
+              if url in seen:
+                  return None
+              seen.add(url)
+              try:
+                  headers = {'Referer': referer} if referer else None
+                  r = s.get(url, timeout=timeout, allow_redirects=True, headers=headers)
+                  log(f'[GET] {url} -> {r.status_code} {len(r.content)} {r.url} {r.headers.get("content-type","")}')
+                  return r
+              except Exception as e:
+                  log(f'[GET error] {url}: {e}')
+                  return None
+
+          names = [
+              'DCS-930L_FIRMWARE_1.08_B4.ZIP',
+              'dcs930l_v108_b4.zip',
+              'DCS-930L_REVA_FIRMWARE_1.08_B4.ZIP',
+              'DCS-930L_A1_FW_V1.08_B4.ZIP',
+              'DCS-930L_A1_FW_V1.08B4.ZIP',
+              'DCS-930L_FW_1.08B4.ZIP',
+              'DCS-930L_fw_revA_1-08b04_all_en_20130809.zip',
+              'DCS-930L_fw_revA_1-08b04_all_en_20130910.zip',
+          ]
+          bases = [
+              'https://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/',
+              'http://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/',
+              'https://support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/',
+              'http://support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/',
+              'https://files.dlink.com.au/products/DCS-930L/REV_A/Firmware/',
+              'http://files.dlink.com.au/products/DCS-930L/REV_A/Firmware/',
+              'https://ftp.dlink.ru/pub/Multimedia/DCS-930L/Firmware/',
+              'http://ftp.dlink.ru/pub/Multimedia/DCS-930L/Firmware/',
+              'https://ftp.dlink.de/dcs/dcs-930l/driver_software/',
+              'http://ftp.dlink.de/dcs/dcs-930l/driver_software/',
+              'https://media.dlink.eu/support/products/dcs/dcs-930l/driver_software/',
+              'http://media.dlink.eu/support/products/dcs/dcs-930l/driver_software/',
+              'https://ftp.dlink.eu/Products/dcs/dcs-930l/',
+              'http://ftp.dlink.eu/Products/dcs/dcs-930l/',
+              'https://ftp.dlink.pl/dcs/dcs-930l/driver_software/',
+              'http://ftp.dlink.pl/dcs/dcs-930l/driver_software/',
+              'https://ftp.dlink.cz/dcs/dcs-930l/driver_software/',
+              'http://ftp.dlink.cz/dcs/dcs-930l/driver_software/',
+          ]
+
+          found = False
+
+          # Direct filename/path combinations.
+          for base in bases:
+              if found: break
+              for name in names:
+                  r = fetch(urllib.parse.urljoin(base, name), timeout=12)
+                  if r is not None and r.status_code == 200 and validate_bytes(r.content, r.url):
+                      found = True; break
+
+          # Crawl directory listings and one child level for likely firmware links.
+          if not found:
+              for base in bases:
+                  if found: break
+                  r = fetch(base, timeout=15)
+                  if r is None or r.status_code != 200 or 'html' not in r.headers.get('content-type','').lower():
+                      continue
+                  soup = BeautifulSoup(r.text, 'html.parser')
+                  links = [urllib.parse.urljoin(r.url, a.get('href')) for a in soup.select('a[href]')]
+                  children = []
+                  for u in links:
+                      low = urllib.parse.unquote(u).lower()
+                      if any(k in low for k in ['1.08','108','b4','firmware','.zip']):
+                          rr = fetch(u, timeout=15, referer=r.url)
+                          if rr is not None and rr.status_code == 200 and validate_bytes(rr.content, rr.url):
+                              found = True; break
+                      if u.startswith(r.url) and u.rstrip('/') != r.url.rstrip('/') and u.endswith('/'):
+                          children.append(u)
+                  if found: break
+                  for child in children[:40]:
+                      rr = fetch(child, timeout=12, referer=r.url)
+                      if rr is None or rr.status_code != 200 or 'html' not in rr.headers.get('content-type','').lower():
+                          continue
+                      ss = BeautifulSoup(rr.text, 'html.parser')
+                      for a in ss.select('a[href]'):
+                          u = urllib.parse.urljoin(rr.url, a.get('href'))
+                          low = urllib.parse.unquote(u).lower()
+                          if any(k in low for k in ['1.08','108','b4']) and any(k in low for k in ['.zip','.bin','download']):
+                              x = fetch(u, timeout=15, referer=rr.url)
+                              if x is not None and x.status_code == 200 and validate_bytes(x.content, x.url):
+                                  found = True; break
+                      if found: break
+
+          # Search engines, then follow result pages and concrete archive links.
+          if not found:
+              queries = [
+                  '"DCS-930L_FIRMWARE_1.08_B4.ZIP"',
+                  '"dcs930l_v108_b4.zip"',
+                  '"dcs930l_v108_b4.bin"',
+                  '"31f11d8a7f938ddd78aec361063245a4"',
+              ]
+              result_urls = []
+              for q in queries:
+                  endpoints = [
+                      'https://html.duckduckgo.com/html/?q=' + urllib.parse.quote(q),
+                      'https://www.bing.com/search?q=' + urllib.parse.quote(q),
+                  ]
+                  for ep in endpoints:
+                      r = fetch(ep, timeout=20)
+                      if r is None or r.status_code != 200: continue
+                      soup = BeautifulSoup(r.text, 'html.parser')
+                      for a in soup.select('a[href]'):
+                          u = a.get('href')
+                          if 'uddg=' in u:
+                              try: u = urllib.parse.parse_qs(urllib.parse.urlparse(u).query)['uddg'][0]
+                              except Exception: pass
+                          if u.startswith('http') and not any(x in u for x in ['duckduckgo.com','bing.com','microsoft.com']):
+                              result_urls.append(u)
+              for idx, u in enumerate(result_urls[:80]):
+                  if found: break
+                  r = fetch(u, timeout=20)
+                  if r is None or r.status_code != 200: continue
+                  if validate_bytes(r.content, r.url): found=True; break
+                  if 'html' not in r.headers.get('content-type','').lower(): continue
+                  soup = BeautifulSoup(r.text,'html.parser')
+                  for a in soup.select('a[href]'):
+                      v = urllib.parse.urljoin(r.url,a.get('href'))
+                      low = urllib.parse.unquote(v).lower()
+                      if any(k in low for k in ['dcs930l','dcs-930l','file-591872']) and any(k in low for k in ['zip','download','firmware']):
+                          x = fetch(v,timeout=20,referer=r.url)
+                          if x is not None and x.status_code==200 and validate_bytes(x.content,x.url): found=True; break
+
+          # Internet Archive CDX: exact and wildcard URL patterns.
+          if not found:
+              patterns = [
+                  'http://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/*',
+                  'https://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/*',
+                  'http://support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/*',
+                  'https://support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/*',
+                  'http://files.dlink.com.au/products/DCS-930L/*',
+                  'https://files.dlink.com.au/products/DCS-930L/*',
+                  '*dcs930l_v108_b4*',
+                  '*DCS-930L_FIRMWARE_1.08_B4*',
+              ]
+              for pattern in patterns:
+                  if found: break
+                  params = {'url': pattern, 'output':'json', 'filter':'statuscode:200', 'fl':'timestamp,original,statuscode,mimetype,digest,length', 'collapse':'digest'}
+                  try:
+                      r = s.get('https://web.archive.org/cdx/search/cdx',params=params,timeout=45)
+                      log(f'[CDX] {pattern} -> {r.status_code} {len(r.content)} {r.text[:300]}')
+                      rows = r.json() if r.status_code==200 else []
+                  except Exception as e:
+                      log(f'[CDX error] {pattern}: {e}'); rows=[]
+                  for row in reversed(rows[1:] if rows else []):
+                      ts, original = row[0], row[1]
+                      snap = f'https://web.archive.org/web/{ts}id_/{original}'
+                      x = fetch(snap,timeout=45)
+                      if x is not None and x.status_code==200 and validate_bytes(x.content,snap): found=True; break
+
+          # Arquivo.pt CDX/replay.
+          if not found:
+              originals = [
+                  'http://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+                  'http://support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+              ]
+              for original in originals:
+                  if found: break
+                  try:
+                      r=s.get('https://arquivo.pt/wayback/cdx',params={'url':original,'output':'json'},timeout=30)
+                      log(f'[Arquivo CDX] {original}: {r.status_code} {r.text[:500]}')
+                      rows=r.json() if r.status_code==200 else []
+                  except Exception as e:
+                      log(f'[Arquivo error] {e}'); rows=[]
+                  data_rows = rows.get('urlkey',[]) if isinstance(rows,dict) else rows
+                  # Also use textsearch API to discover captures/pages.
+                  try:
+                      q=s.get('https://arquivo.pt/textsearch',params={'q':os.path.basename(original),'maxItems':50},timeout=30)
+                      obj=q.json() if q.status_code==200 else {}
+                      for item in obj.get('response_items',[]):
+                          for key in ['linkToArchive','originalURL']:
+                              u=item.get(key)
+                              if u:
+                                  x=fetch(u,timeout=40)
+                                  if x is not None and x.status_code==200 and validate_bytes(x.content,u): found=True; break
+                          if found: break
+                  except Exception as e: log(f'[Arquivo search error] {e}')
+
+          # Common Crawl index and WARC recovery.
+          if not found:
+              targets = [
+                  'ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+                  'support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+                  'drivers.softpedia.com/get/FIRMWARE/D-Link/D-Link-DCS-930L-Camera-Firmware-108.shtml',
+                  'rebyte.me/en/d-link/63506/file-591872/',
+              ]
+              try:
+                  info=s.get('https://index.commoncrawl.org/collinfo.json',timeout=30).json()
+                  indexes=[x['id'] for x in info if any(y in x['id'] for y in ['2013','2014','2015','2016','2017','2018'])]
+                  indexes += [x['id'] for x in info[:4]]
+              except Exception as e:
+                  log(f'[CC index list error] {e}'); indexes=[]
+              cc_records=[]
+              for iid in indexes:
+                  if found: break
+                  for target_url in targets:
+                      try:
+                          url=f'https://index.commoncrawl.org/{iid}-index'
+                          r=s.get(url,params={'url':target_url,'output':'json'},timeout=25)
+                          if r.status_code!=200 or not r.text.strip(): continue
+                          for line in r.text.splitlines():
+                              try:
+                                  rec=json.loads(line); cc_records.append(rec)
+                                  log(f'[CC record] {iid} {rec}')
+                              except Exception: pass
+                      except Exception as e: log(f'[CC query error] {iid} {target_url}: {e}')
+                  for rec in cc_records[-30:]:
+                      try:
+                          start=int(rec['offset']); length=int(rec['length'])
+                          rr=s.get('https://data.commoncrawl.org/'+rec['filename'],headers={'Range':f'bytes={start}-{start+length-1}'},timeout=60)
+                          log(f'[CC WARC] {rec.get("url")} -> {rr.status_code} {len(rr.content)}')
+                          stream=io.BytesIO(rr.content)
+                          for record in ArchiveIterator(stream):
+                              if record.rec_type != 'response': continue
+                              payload=record.content_stream().read()
+                              if validate_bytes(payload,'CommonCrawl '+rec.get('url','')): found=True; break
+                          if found: break
+                      except Exception as e: log(f'[CC WARC error] {e}')
+
+          # Headless Chrome fallback for mirror pages; dump any observed download URLs.
+          if not found:
+              pages=['https://rebyte.me/en/d-link/63506/file-591872/','https://drivers.softpedia.com/get/FIRMWARE/D-Link/D-Link-DCS-930L-Camera-Firmware-108.shtml']
+              for page in pages:
+                  try:
+                      import subprocess
+                      dom=subprocess.check_output(['google-chrome','--headless=new','--no-sandbox','--disable-gpu','--virtual-time-budget=20000','--dump-dom',page],stderr=subprocess.STDOUT,timeout=40)
+                      text=dom.decode('utf-8','replace')
+                      open('out/chrome-'+page.split('/')[2]+'.html','w').write(text)
+                      log(f'[Chrome] {page}: {len(text)} chars')
+                      soup=BeautifulSoup(text,'html.parser')
+                      for a in soup.select('a[href]'):
+                          u=urllib.parse.urljoin(page,a.get('href'))
+                          low=u.lower()
+                          if any(k in low for k in ['.zip','download','postdownload']):
+                              x=fetch(u,timeout=30,referer=page)
+                              if x is not None and x.status_code==200 and validate_bytes(x.content,u): found=True; break
+                  except Exception as e: log(f'[Chrome error] {page}: {e}')
+                  if found: break
+
+          if found:
+              zipdata=open(OUT,'rb').read(); bindata=open(BIN_OUT,'rb').read()
+              open('out/checksums.txt','w').write(
+                  f'MD5 {hashlib.md5(zipdata).hexdigest()}  {os.path.basename(OUT)}\n'
+                  f'SHA256 {hashlib.sha256(zipdata).hexdigest()}  {os.path.basename(OUT)}\n'
+                  f'MD5 {hashlib.md5(bindata).hexdigest()}  {os.path.basename(BIN_OUT)}\n'
+                  f'SHA256 {hashlib.sha256(bindata).hexdigest()}  {os.path.basename(BIN_OUT)}\n'
+              )
+              log('[SUCCESS] validated firmware recovered')
+          else:
+              log('[FAIL] validated firmware not recovered')
+          PY
+
+      - name: Upload recovery output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dcs930l-recovery-output
+          path: out
+          retention-days: 1
