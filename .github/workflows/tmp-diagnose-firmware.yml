@@ -1,0 +1,61 @@
+name: Temporary firmware source diagnostics
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe download sources
+        shell: bash
+        run: |
+          set +e
+          mkdir -p out
+          UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36'
+          exec > >(tee out/diagnostic.log) 2>&1
+
+          for url in \
+            'https://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP' \
+            'http://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP' \
+            'https://support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP' \
+            'http://support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP' \
+            'https://files.dlink.com.au/products/DCS-930L/REV_A/Firmware/DCS-930L_FIRMWARE_1.08_B4.ZIP'; do
+            echo "===== $url"
+            name="out/candidate-$(printf '%s' "$url" | sha256sum | cut -c1-12)"
+            curl -k -fL --connect-timeout 5 --max-time 15 -A "$UA" -D "${name}.headers" -o "${name}.body" "$url"
+            rc=$?
+            echo "curl rc=$rc"
+            test -f "${name}.body" && { file "${name}.body"; wc -c "${name}.body"; md5sum "${name}.body"; unzip -l "${name}.body" | head -30; }
+          done
+
+          for page in \
+            'https://rebyte.me/en/d-link/63506/file-591872/' \
+            'https://drivers.softpedia.com/get/FIRMWARE/D-Link/D-Link-DCS-930L-Camera-Firmware-108.shtml'; do
+            host=$(printf '%s' "$page" | sed 's#https\?://##;s#/.*##')
+            echo "===== PAGE $page"
+            curl -k -L --connect-timeout 5 --max-time 20 -A "$UA" -D "out/${host}.headers" -o "out/${host}.html" "$page"
+            grep -Eio '.{0,120}(href|src|action|download|postdownload|zip|file-591872).{0,240}' "out/${host}.html" | head -200 > "out/${host}-interesting.txt"
+            cat "out/${host}-interesting.txt"
+          done
+
+          for original in \
+            'http://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP' \
+            'ftp://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP' \
+            'http://support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP'; do
+            enc=$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1],safe=""))' "$original")
+            curl -k -L --connect-timeout 5 --max-time 20 -A "$UA" "https://web.archive.org/cdx/search/cdx?url=${enc}&output=json&filter=statuscode:200&fl=timestamp,original,statuscode,mimetype,digest,length&collapse=digest" | tee -a out/cdx.json
+            echo >> out/cdx.json
+          done
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dcs930l-source-diagnostics
+          path: out
+          retention-days: 1
