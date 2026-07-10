@@ -1,0 +1,70 @@
+name: Temporary exact DCS-930L v1.08 probe
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Probe exact firmware filenames
+        shell: bash
+        run: |
+          set +e
+          mkdir -p out
+          base='https://ftp.dlink.ru/pub/Multimedia/DCS-930L/Firmware/'
+          names=(
+            'DCS-930L_A1_FW_v1.08_build4.bin'
+            'DCS-930L_A1_FW_v1.08_build04.bin'
+            'DCS-930L_A1_FW_1.08_build4.bin'
+            'DCS-930L_A1_FW_1.08_build04.bin'
+            'DCS-930L_A1_FW_v1.08_b4.bin'
+            'DCS-930L_A1_FW_v1.08B4.bin'
+            'DCS-930L_A1_FW_1.08_B4.bin'
+            'DCS-930L_FW_v1.08_build4.bin'
+            'DCS-930L_FW_1.08_B4.bin'
+            'dcs930l_v108_b4.bin'
+            'DCS-930L_FIRMWARE_1.08_B4.ZIP'
+            'dcs930l_v108_b4.zip'
+          )
+          : > out/probe.log
+          found=''
+          for n in "${names[@]}"; do
+            url="${base}${n}"
+            echo "===== $url" | tee -a out/probe.log
+            code=$(curl -k -L --connect-timeout 4 --max-time 20 -A 'Mozilla/5.0' -sS -w '%{http_code}' -o "out/$n.tmp" "$url")
+            size=$(wc -c < "out/$n.tmp" 2>/dev/null || echo 0)
+            echo "HTTP=$code size=$size" | tee -a out/probe.log
+            if [ "$code" = 200 ] && [ "$size" -gt 1000000 ]; then
+              file "out/$n.tmp" | tee -a out/probe.log
+              md5sum "out/$n.tmp" | tee -a out/probe.log
+              sha256sum "out/$n.tmp" | tee -a out/probe.log
+              if unzip -t "out/$n.tmp" >/dev/null 2>&1; then
+                mv "out/$n.tmp" out/DCS-930L_FIRMWARE_1.08_B4.ZIP
+                unzip -j out/DCS-930L_FIRMWARE_1.08_B4.ZIP '*dcs930l*v108*b4*.bin' -d out/ || true
+              else
+                mv "out/$n.tmp" out/dcs930l_v108_b4.bin
+              fi
+              found=1
+              break
+            fi
+            rm -f "out/$n.tmp"
+          done
+          if [ -n "$found" ]; then
+            {
+              [ -f out/DCS-930L_FIRMWARE_1.08_B4.ZIP ] && md5sum out/DCS-930L_FIRMWARE_1.08_B4.ZIP && sha256sum out/DCS-930L_FIRMWARE_1.08_B4.ZIP
+              [ -f out/dcs930l_v108_b4.bin ] && md5sum out/dcs930l_v108_b4.bin && sha256sum out/dcs930l_v108_b4.bin
+            } > out/checksums.txt
+          fi
+      - name: Upload exact probe result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dcs930l-exact-probe
+          path: out
+          retention-days: 1
