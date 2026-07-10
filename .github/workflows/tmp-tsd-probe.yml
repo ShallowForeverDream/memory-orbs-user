@@ -1,0 +1,176 @@
+name: Temporary D-Link TSD probe
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe D-Link Taiwan support site
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 -m pip install --quiet selenium beautifulsoup4 requests
+          python3 - <<'PY'
+          import json, os, re, time, traceback
+          from urllib.parse import urljoin
+          import requests
+          from bs4 import BeautifulSoup
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.support.ui import Select
+
+          base = 'https://tsd.dlink.com.tw/'
+          log = []
+          def note(x):
+              print(x, flush=True)
+              log.append(str(x))
+
+          # Raw HTTP copy first.
+          try:
+              r = requests.get(base, timeout=30, headers={'User-Agent':'Mozilla/5.0'})
+              note(f'HTTP {r.status_code} {len(r.content)} bytes final={r.url}')
+              open('out/home.html','wb').write(r.content)
+              open('out/home-headers.json','w').write(json.dumps(dict(r.headers), indent=2))
+              soup = BeautifulSoup(r.text, 'html.parser')
+              for tag in soup.find_all(['script','form','select','a']):
+                  val = tag.get('src') or tag.get('action') or tag.get('href') or tag.get('name') or tag.get('id')
+                  if val:
+                      note(f'RAW {tag.name}: {val}')
+              # Save linked scripts for endpoint inspection.
+              for idx, s in enumerate(soup.find_all('script', src=True)):
+                  u = urljoin(r.url, s['src'])
+                  try:
+                      rr = requests.get(u, timeout=30, headers={'User-Agent':'Mozilla/5.0','Referer':r.url})
+                      open(f'out/script-{idx}.js','wb').write(rr.content)
+                      note(f'SCRIPT {idx} {rr.status_code} {len(rr.content)} {u}')
+                  except Exception as e:
+                      note(f'SCRIPT FAIL {u}: {e}')
+          except Exception as e:
+              note(f'raw request failed: {e}')
+
+          opts = Options()
+          opts.add_argument('--headless=new')
+          opts.add_argument('--no-sandbox')
+          opts.add_argument('--disable-dev-shm-usage')
+          opts.add_argument('--window-size=1440,1600')
+          opts.set_capability('goog:loggingPrefs', {'performance':'ALL', 'browser':'ALL'})
+          driver = webdriver.Chrome(options=opts)
+          try:
+              driver.get(base)
+              time.sleep(4)
+              open('out/selenium-initial.html','w',encoding='utf-8').write(driver.page_source)
+              driver.save_screenshot('out/initial.png')
+              note(f'initial URL {driver.current_url} title={driver.title}')
+
+              def dump_selects(stage):
+                  sels = driver.find_elements('tag name','select')
+                  note(f'{stage}: {len(sels)} selects')
+                  for i, el in enumerate(sels):
+                      try:
+                          choices = [(o.get_attribute('value'), o.text) for o in Select(el).options]
+                          note(f'{stage} SELECT {i} id={el.get_attribute("id")} name={el.get_attribute("name")} choices={choices[:300]}')
+                      except Exception as e:
+                          note(f'{stage} SELECT {i} error {e}')
+                  return sels
+
+              sels = dump_selects('initial')
+              # Choose the product family DCS in any select that offers it.
+              selected_family = False
+              for el in sels:
+                  sel = Select(el)
+                  for o in sel.options:
+                      if o.text.strip().upper() == 'DCS' or o.get_attribute('value').strip().upper() == 'DCS':
+                          sel.select_by_visible_text(o.text)
+                          driver.execute_script("arguments[0].dispatchEvent(new Event('change',{bubbles:true}));", el)
+                          note(f'selected family DCS in {el.get_attribute("name")}')
+                          selected_family = True
+                          break
+                  if selected_family: break
+              time.sleep(4)
+              sels = dump_selects('after-family')
+              open('out/after-family.html','w',encoding='utf-8').write(driver.page_source)
+              driver.save_screenshot('out/after-family.png')
+
+              selected_model = False
+              for el in sels:
+                  sel = Select(el)
+                  for o in sel.options:
+                      txt = (o.text or '').strip().upper().replace(' ', '')
+                      val = (o.get_attribute('value') or '').strip().upper().replace(' ', '')
+                      if 'DCS-930L' in txt or 'DCS930L' in txt or 'DCS-930L' in val or 'DCS930L' in val:
+                          try:
+                              sel.select_by_visible_text(o.text)
+                          except Exception:
+                              sel.select_by_value(o.get_attribute('value'))
+                          driver.execute_script("arguments[0].dispatchEvent(new Event('change',{bubbles:true}));", el)
+                          note(f'selected model {o.text} value={o.get_attribute("value")} in {el.get_attribute("name")}')
+                          selected_model = True
+                          break
+                  if selected_model: break
+              time.sleep(6)
+              dump_selects('after-model')
+              open('out/after-model.html','w',encoding='utf-8').write(driver.page_source)
+              driver.save_screenshot('out/after-model.png')
+              note(f'after model URL {driver.current_url} title={driver.title}')
+
+              # If the page still needs a submit/button action, click likely buttons one by one.
+              if selected_model:
+                  for el in driver.find_elements('xpath', '//input[@type="submit" or @type="button"] | //button'):
+                      label = (el.get_attribute('value') or el.text or '').strip()
+                      if re.search(r'(search|go|submit|download|查|送出|確定)', label, re.I):
+                          try:
+                              note(f'clicking button {label}')
+                              driver.execute_script('arguments[0].click();', el)
+                              time.sleep(6)
+                              break
+                          except Exception as e:
+                              note(f'button click failed {label}: {e}')
+              open('out/final.html','w',encoding='utf-8').write(driver.page_source)
+              driver.save_screenshot('out/final.png')
+              note(f'final URL {driver.current_url} title={driver.title}')
+
+              soup = BeautifulSoup(driver.page_source, 'html.parser')
+              links=[]
+              for a in soup.find_all('a', href=True):
+                  u=urljoin(driver.current_url,a['href'])
+                  text=' '.join(a.get_text(' ',strip=True).split())
+                  if re.search(r'(930|firmware|download|1\.08|v108|b4|\.bin|\.zip)', u+' '+text, re.I):
+                      links.append({'text':text,'url':u})
+              open('out/candidate-links.json','w',encoding='utf-8').write(json.dumps(links,indent=2,ensure_ascii=False))
+              note(f'candidate links {links}')
+
+              perf=[]
+              for ent in driver.get_log('performance'):
+                  try:
+                      msg=json.loads(ent['message'])['message']
+                      if msg['method']=='Network.responseReceived':
+                          resp=msg['params']['response']
+                          u=resp.get('url','')
+                          if 'dlink' in u.lower() or re.search(r'(930|firmware|download|\.zip|\.bin)',u,re.I):
+                              perf.append({'url':u,'status':resp.get('status'),'mimeType':resp.get('mimeType')})
+                  except Exception:
+                      pass
+              open('out/network.json','w',encoding='utf-8').write(json.dumps(perf,indent=2,ensure_ascii=False))
+              note(f'network candidates {perf}')
+              open('out/browser-log.json','w',encoding='utf-8').write(json.dumps(driver.get_log('browser'),indent=2))
+          except Exception:
+              note(traceback.format_exc())
+          finally:
+              driver.quit()
+
+          open('out/probe.log','w',encoding='utf-8').write('\n'.join(log)+'\n')
+          PY
+
+      - name: Upload probe output
+        uses: actions/upload-artifact@v4
+        with:
+          name: dlink-tsd-probe
+          path: out
+          retention-days: 1
