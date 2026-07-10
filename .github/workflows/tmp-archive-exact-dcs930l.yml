@@ -1,0 +1,265 @@
+name: Temporary exact archive DCS-930L recovery
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Recover exact firmware from public web archives
+        shell: bash
+        run: |
+          set +e
+          mkdir -p out
+          python3 -m pip install --quiet requests warcio
+          python3 - <<'PY' 2>&1 | tee out/archive-exact.log
+          import gzip, hashlib, io, json, os, re, urllib.parse, zipfile
+          import requests
+          from warcio.archiveiterator import ArchiveIterator
+
+          TARGET='dcs930l_v108_b4.bin'
+          OUTZIP='out/DCS-930L_FIRMWARE_1.08_B4.ZIP'
+          OUTBIN='out/'+TARGET
+          EXPECTED_ZIP_MD5='31f11d8a7f938ddd78aec361063245a4'
+          s=requests.Session(); s.headers.update({'User-Agent':'Mozilla/5.0 (compatible; firmware-research/1.0)'})
+          found=False; seen=set()
+
+          targets=[
+            'http://ftp.dlink.ru/pub/Multimedia/DCS-930L/Firmware/DCS-930L_A1_FW_v1.08_build4.bin',
+            'https://ftp.dlink.ru/pub/Multimedia/DCS-930L/Firmware/DCS-930L_A1_FW_v1.08_build4.bin',
+            'http://ftp.dlink.ru/pub/Multimedia/DCS-930L/Firmware/DCS-930L_A1_FW_v1.08_build04.bin',
+            'https://ftp.dlink.ru/pub/Multimedia/DCS-930L/Firmware/DCS-930L_A1_FW_v1.08_build04.bin',
+            'http://ftp.dlink.ru/pub/Multimedia/DCS-930L/Firmware/dcs930l_v108_b4.bin',
+            'https://ftp.dlink.ru/pub/Multimedia/DCS-930L/Firmware/dcs930l_v108_b4.bin',
+            'http://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+            'https://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+            'http://support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+            'https://support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+            'http://files.dlink.com.au/products/DCS-930L/REV_A/Firmware/dcs930l_v108_b4.bin',
+            'https://files.dlink.com.au/products/DCS-930L/REV_A/Firmware/dcs930l_v108_b4.bin',
+            'http://files.dlink.com.au/products/DCS-930L/REV_A/Firmware/dcs930l_v108_b4.zip',
+            'https://files.dlink.com.au/products/DCS-930L/REV_A/Firmware/dcs930l_v108_b4.zip',
+          ]
+
+          def log(*a): print(*a,flush=True)
+          def save(data,src,declared=''):
+            global found
+            if not data or len(data)<100000: return False
+            try:
+              if zipfile.is_zipfile(io.BytesIO(data)):
+                z=zipfile.ZipFile(io.BytesIO(data)); names=z.namelist(); md5=hashlib.md5(data).hexdigest()
+                n=next((x for x in names if os.path.basename(x).lower()==TARGET),None)
+                log('ZIP CANDIDATE',src,'size',len(data),'md5',md5,'files',names)
+                if n:
+                  open(OUTZIP,'wb').write(data); open(OUTBIN,'wb').write(z.read(n)); found=True; return True
+              low=(src+' '+declared).lower()
+              # Known DCS-930L Rev.A images are exactly 4 MiB; accept only an exact 1.08/B4 filename URL.
+              exact_name=any(x in low for x in [TARGET,'dcs-930l_a1_fw_v1.08_build4.bin','dcs-930l_a1_fw_v1.08_build04.bin'])
+              looks_html=data[:256].lstrip().lower().startswith((b'<!doctype',b'<html',b'<?xml'))
+              if exact_name and not looks_html and len(data) in range(4_000_000,4_300_000):
+                open(OUTBIN,'wb').write(data); found=True
+                log('RAW CANDIDATE ACCEPTED',src,'size',len(data),'md5',hashlib.md5(data).hexdigest())
+                return True
+            except Exception as e: log('SAVE ERROR',src,e)
+            return False
+
+          def get(url,timeout=45,headers=None):
+            key=(url,str(headers))
+            if key in seen: return None
+            seen.add(key)
+            try:
+              r=s.get(url,timeout=timeout,allow_redirects=True,headers=headers,verify=False)
+              log('GET',url,'->',r.status_code,len(r.content),r.url,r.headers.get('content-type'),r.headers.get('content-disposition'))
+              return r
+            except Exception as e:
+              log('GET ERROR',url,e); return None
+
+          requests.packages.urllib3.disable_warnings()
+
+          # Direct probes.
+          for u in targets:
+            if found: break
+            r=get(u,20)
+            if r is not None and r.status_code==200 and save(r.content,r.url,r.headers.get('content-disposition','')): break
+
+          # Internet Archive advanced-search items which may contain firmware collections.
+          if not found:
+            queries=['dcs930l_v108_b4.bin','DCS-930L_FIRMWARE_1.08_B4.ZIP','DCS-930L v1.08 build4','identifier:dlink* AND dcs930l']
+            identifiers=[]
+            for q in queries:
+              try:
+                r=s.get('https://archive.org/advancedsearch.php',params={'q':q,'fl[]':['identifier','title'],'rows':100,'page':1,'output':'json'},timeout=45)
+                obj=r.json(); docs=obj.get('response',{}).get('docs',[]); log('IA SEARCH',q,'docs',docs[:20])
+                identifiers += [d.get('identifier') for d in docs if d.get('identifier')]
+              except Exception as e: log('IA SEARCH ERROR',q,e)
+            for ident in dict.fromkeys(identifiers):
+              if found: break
+              try:
+                m=s.get('https://archive.org/metadata/'+urllib.parse.quote(ident,safe=''),timeout=60).json()
+                for f in m.get('files',[]):
+                  name=f.get('name',''); low=name.lower()
+                  if any(x in low for x in [TARGET.lower(),'dcs-930l_firmware_1.08_b4.zip','dcs930l_v108_b4.zip']) or ('dcs930l' in low and ('108' in low or '1.08' in low)):
+                    u='https://archive.org/download/'+urllib.parse.quote(ident,safe='')+'/'+urllib.parse.quote(name,safe='/')
+                    rr=get(u,120)
+                    if rr is not None and rr.status_code==200 and save(rr.content,rr.url,name): break
+              except Exception as e: log('IA ITEM ERROR',ident,e)
+
+          # Wayback CDX and replay.
+          if not found:
+            for target in targets:
+              if found: break
+              params={'url':target,'output':'json','filter':'statuscode:200','fl':'timestamp,original,statuscode,mimetype,digest,length','collapse':'digest'}
+              rows=[]
+              for endpoint in ['https://web.archive.org/cdx/search/cdx','https://web.archive.org/web/timemap/json']:
+                try:
+                  if 'timemap' in endpoint:
+                    rr=s.get(endpoint,params={'url':target},timeout=60)
+                    log('WAYBACK TIMEMAP',target,rr.status_code,len(rr.content),rr.text[:300])
+                    obj=rr.json() if rr.status_code==200 else []
+                    # timemap JSON rows use original CDX-like structure when available
+                    if isinstance(obj,list): rows=obj
+                  else:
+                    rr=s.get(endpoint,params=params,timeout=60)
+                    log('WAYBACK CDX',target,rr.status_code,len(rr.content),rr.text[:300])
+                    obj=rr.json() if rr.status_code==200 else []
+                    if isinstance(obj,list): rows=obj
+                except Exception as e: log('WAYBACK INDEX ERROR',endpoint,target,e)
+                if rows: break
+              if rows and isinstance(rows[0],list):
+                for row in reversed(rows[1:]):
+                  try:
+                    ts,original=row[0],row[1]
+                    for mod in ['id_','']:
+                      u=f'https://web.archive.org/web/{ts}{mod}/{original}'
+                      x=get(u,120)
+                      if x is not None and x.status_code==200 and save(x.content,u,x.headers.get('content-disposition','')): break
+                    if found: break
+                  except Exception as e: log('WAYBACK REPLAY ERROR',row,e)
+
+          # Memento aggregator can reveal captures in archives other than Wayback.
+          if not found:
+            for target in targets:
+              if found: break
+              try:
+                u='https://timetravel.mementoweb.org/api/json/20130726000000/'+target
+                r=get(u,60)
+                obj=r.json() if r is not None and r.status_code==200 else {}
+                log('MEMENTO',target,str(obj)[:2000])
+                urls=[]
+                for key in ['closest','first','last']:
+                  v=obj.get('mementos',{}).get(key,{}) if isinstance(obj,dict) else {}
+                  if isinstance(v,dict) and v.get('uri'): urls += v['uri'] if isinstance(v['uri'],list) else [v['uri']]
+                for xurl in urls:
+                  x=get(xurl,120)
+                  if x is not None and x.status_code==200 and save(x.content,xurl,x.headers.get('content-disposition','')): break
+              except Exception as e: log('MEMENTO ERROR',target,e)
+
+          # Arquivo.pt index/replay and text search.
+          if not found:
+            for target in targets:
+              if found: break
+              try:
+                r=s.get('https://arquivo.pt/wayback/cdx',params={'url':target,'output':'json'},timeout=60)
+                log('ARQUIVO CDX',target,r.status_code,len(r.content),r.text[:500])
+                obj=r.json() if r.status_code==200 else []
+                rows=obj if isinstance(obj,list) else obj.get('results',[]) if isinstance(obj,dict) else []
+                for row in rows:
+                  ts=row.get('timestamp') if isinstance(row,dict) else (row[1] if len(row)>1 else None)
+                  original=row.get('url') or row.get('original') if isinstance(row,dict) else (row[2] if len(row)>2 else target)
+                  if ts:
+                    for base in ['https://arquivo.pt/noFrame/replay/','https://arquivo.pt/wayback/']:
+                      x=get(base+str(ts)+'/'+str(original),120)
+                      if x is not None and x.status_code==200 and save(x.content,x.url,x.headers.get('content-disposition','')): break
+                  if found: break
+              except Exception as e: log('ARQUIVO ERROR',target,e)
+            if not found:
+              for q in [TARGET,'DCS-930L_FIRMWARE_1.08_B4.ZIP','DCS-930L_A1_FW_v1.08_build4.bin']:
+                try:
+                  r=s.get('https://arquivo.pt/textsearch',params={'q':q,'maxItems':50},timeout=60); obj=r.json() if r.status_code==200 else {}
+                  log('ARQUIVO SEARCH',q,str(obj)[:2000])
+                  for item in obj.get('response_items',[]):
+                    for key in ['linkToArchive','originalURL']:
+                      u=item.get(key)
+                      if u:
+                        x=get(u,120)
+                        if x is not None and x.status_code==200 and save(x.content,x.url,x.headers.get('content-disposition','')): break
+                    if found: break
+                except Exception as e: log('ARQUIVO SEARCH ERROR',q,e)
+
+          # Common Crawl: exact URLs and directory prefixes across collections.
+          if not found:
+            try:
+              colls=s.get('https://index.commoncrawl.org/collinfo.json',timeout=45).json()
+            except Exception as e: log('CC COLL ERROR',e); colls=[]
+            ids=[c['id'] for c in colls]
+            # Collections near release plus newest collections first.
+            ids.sort(key=lambda x:(0 if any(y in x for y in ['2013','2014','2015','2016','2017','2018']) else 1,x))
+            queries=[(u,'exact') for u in targets]
+            queries += [
+              ('http://ftp.dlink.ru/pub/Multimedia/DCS-930L/Firmware/','prefix'),
+              ('https://ftp.dlink.ru/pub/Multimedia/DCS-930L/Firmware/','prefix'),
+              ('http://files.dlink.com.au/products/DCS-930L/REV_A/Firmware/','prefix'),
+              ('https://files.dlink.com.au/products/DCS-930L/REV_A/Firmware/','prefix'),
+              ('http://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/','prefix'),
+            ]
+            records=[]; rseen=set()
+            for cid in ids:
+              if found or len(records)>400: break
+              for q,match in queries:
+                try:
+                  params={'url':q,'output':'json','filter':'status:200'}
+                  if match!='exact': params['matchType']=match
+                  r=s.get(f'https://index.commoncrawl.org/{cid}-index',params=params,timeout=30)
+                  if r.status_code!=200 or not r.text.strip(): continue
+                  lines=r.text.splitlines(); log('CC INDEX',cid,q,match,len(lines))
+                  for line in lines:
+                    try: rec=json.loads(line)
+                    except Exception: continue
+                    u=rec.get('url','').lower()
+                    if match=='prefix' and not any(k in u for k in ['1.08','108','build4','b4']): continue
+                    key=(rec.get('filename'),rec.get('offset'),rec.get('length'))
+                    if key not in rseen: rseen.add(key); records.append(rec)
+                except Exception as e: log('CC INDEX ERROR',cid,q,e)
+            log('CC RECORDS',len(records))
+            for rec in records:
+              if found: break
+              try:
+                start=int(rec['offset']); length=int(rec['length'])
+                r=s.get('https://data.commoncrawl.org/'+rec['filename'],headers={'Range':f'bytes={start}-{start+length-1}'},timeout=120)
+                log('CC WARC',rec.get('url'),r.status_code,len(r.content))
+                if r.status_code not in (200,206): continue
+                for record in ArchiveIterator(io.BytesIO(r.content)):
+                  if record.rec_type!='response': continue
+                  payload=record.content_stream().read()
+                  if save(payload,rec.get('url',''),record.http_headers.get_header('Content-Disposition') if record.http_headers else ''): break
+              except Exception as e: log('CC WARC ERROR',rec.get('url'),e)
+
+          # Download the official release note as supporting metadata when available.
+          note='https://ftp.dlink.ru/pub/Multimedia/DCS-930L/Firmware/DCS-930L_A1_release%20note_FW_1.08_build4.doc'
+          try:
+            r=get(note,30)
+            if r is not None and r.status_code==200 and len(r.content)>10000: open('out/DCS-930L_A1_release_note_FW_1.08_build4.doc','wb').write(r.content)
+          except Exception: pass
+
+          if os.path.exists(OUTZIP) or os.path.exists(OUTBIN):
+            lines=[]
+            for p in [OUTZIP,OUTBIN]:
+              if os.path.exists(p):
+                d=open(p,'rb').read(); lines += [f'MD5 {hashlib.md5(d).hexdigest()}  {os.path.basename(p)}',f'SHA256 {hashlib.sha256(d).hexdigest()}  {os.path.basename(p)}',f'SIZE {len(d)}  {os.path.basename(p)}']
+            open('out/checksums.txt','w').write('\n'.join(lines)+'\n'); log('SUCCESS',lines)
+          else:
+            log('NOT FOUND')
+          PY
+      - name: Upload archive recovery output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dcs930l-archive-exact-output
+          path: out
+          retention-days: 1
