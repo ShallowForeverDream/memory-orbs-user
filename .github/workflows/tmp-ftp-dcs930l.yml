@@ -1,0 +1,123 @@
+name: Temporary FTP DCS-930L recovery
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Crawl regional anonymous FTP archives
+        shell: bash
+        run: |
+          set +e
+          mkdir -p out/downloads
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+          python3 - <<'PY' 2>&1 | tee out/ftp-recovery.log
+          import hashlib, io, os, re, subprocess, urllib.parse, zipfile
+
+          TARGET='dcs930l_v108_b4.bin'
+          EXPECTED_ZIP='31f11d8a7f938ddd78aec361063245a4'
+          OUT='out/DCS-930L_FIRMWARE_1.08_B4.ZIP'
+          BIN='out/'+TARGET
+          roots=[
+            'ftp://files.dlink.com.au/products/DCS-930L/REV_A/Firmware/',
+            'ftp://ftp.dlink.de/dcs/dcs-930l/driver_software/',
+            'ftp://ftp.dlink.pl/dcs/dcs-930l/driver_software/',
+            'ftp://ftp.dlink.cz/dcs/dcs-930l/driver_software/',
+            'ftp://ftp.dlink.eu/Products/dcs/dcs-930l/',
+            'ftp://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/',
+          ]
+
+          def log(*a): print(*a,flush=True)
+          def validate(path,src):
+            try:
+              data=open(path,'rb').read()
+              if zipfile.is_zipfile(io.BytesIO(data)):
+                z=zipfile.ZipFile(io.BytesIO(data)); names=z.namelist(); md5=hashlib.md5(data).hexdigest()
+                log('ZIP',src,len(data),md5,names)
+                n=next((x for x in names if os.path.basename(x).lower()==TARGET),None)
+                if n:
+                  open(OUT,'wb').write(data); open(BIN,'wb').write(z.read(n)); return True
+              low=(src+' '+os.path.basename(path)).lower()
+              if len(data)>2_000_000 and (TARGET in low or ('dcs930l' in low and any(k in low for k in ['108','1.08','b4','build4']))):
+                open(BIN,'wb').write(data); log('RAW',src,len(data),hashlib.md5(data).hexdigest()); return True
+            except Exception as e: log('VALIDATE ERR',src,e)
+            return False
+
+          found=False
+          for ridx,root in enumerate(roots):
+            if found: break
+            host=urllib.parse.urlparse(root).hostname
+            path=urllib.parse.urlparse(root).path
+            script=f'''set net:timeout 12; set net:max-retries 1; set ftp:ssl-allow no; set ftp:passive-mode yes; open -u anonymous,firmware@example.com ftp://{host}; cd {path}; cls -laR'''
+            try:
+              p=subprocess.run(['lftp','-c',script],capture_output=True,text=True,timeout=90)
+              listing=(p.stdout or '')+'\n'+(p.stderr or '')
+            except Exception as e:
+              listing='EXCEPTION '+repr(e)
+            open(f'out/listing-{ridx}.txt','w',encoding='utf-8').write(listing)
+            log('ROOT',root,'listing chars',len(listing),'preview',listing[:5000])
+
+            candidates=[]
+            # lftp recursive listing may print path headers and filenames. Extract likely full/relative paths.
+            current=''
+            for line in listing.splitlines():
+              stripped=line.strip()
+              if stripped.endswith(':') and not stripped.startswith(('lftp','ftp')):
+                current=stripped[:-1].strip('./')
+                continue
+              name=stripped.split()[-1] if stripped else ''
+              if not name or name in ['.','..'] or name.endswith(':'): continue
+              rel=(current+'/'+name).strip('/') if current else name
+              low=urllib.parse.unquote(rel).lower()
+              if any(low.endswith(ext) for ext in ['.zip','.bin','.rar','.7z','.img']) and any(k in low for k in ['1.08','108','b4','build4','930l']): candidates.append(rel)
+
+            # Known path variants, including the naming convention used by adjacent releases.
+            guesses=[
+              'DCS-930L_FIRMWARE_1.08_B4.ZIP','dcs930l_v108_b4.zip','dcs930l_v108_b4.bin',
+              'Firmware_v1.08B04/dcs930l_v108_b4.bin','Firmware_v1.08B04/dcs930l_v108_b4.zip',
+              'Firmware_v1.08b04/dcs930l_v108_b4.bin','Firmware_v1.08b04/dcs930l_v108_b4.zip',
+              'Firmware_v1.08B4/dcs930l_v108_b4.bin','Firmware_v1.08B4/dcs930l_v108_b4.zip',
+              'Firmware_v1.08/dcs930l_v108_b4.bin','Firmware_v1.08/dcs930l_v108_b4.zip',
+              'Firmware_1.08/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+              'Firmware_1.08/dcs930l_v108_b4.bin',
+              'v1.08/dcs930l_v108_b4.bin','v1.08/dcs930l_v108_b4.zip',
+              '1.08/dcs930l_v108_b4.bin','1.08/dcs930l_v108_b4.zip',
+              'DCS-930L_A1_FW_v1.08_build4.bin','DCS-930L_A1_FW_v1.08_build04.bin',
+            ]
+            candidates += guesses
+            seen=set()
+            for cidx,rel in enumerate(candidates):
+              if found or rel in seen: continue
+              seen.add(rel)
+              url=urllib.parse.urljoin(root,urllib.parse.quote(rel,safe='/._-'))
+              dst=f'out/downloads/{ridx}-{cidx}-'+os.path.basename(rel)
+              try:
+                q=subprocess.run(['curl','--ftp-pasv','--connect-timeout','8','--max-time','60','--retry','0','-fL','-u','anonymous:firmware@example.com','-o',dst,url],capture_output=True,text=True,timeout=70)
+                size=os.path.getsize(dst) if os.path.exists(dst) else 0
+                log('GET',url,'rc',q.returncode,'size',size,'err',(q.stderr or '')[-300:])
+                if q.returncode==0 and size>100000 and validate(dst,url): found=True; break
+              except Exception as e: log('GET ERR',url,e)
+
+          if os.path.exists(OUT) or os.path.exists(BIN):
+            lines=[]
+            for p in [OUT,BIN]:
+              if os.path.exists(p):
+                d=open(p,'rb').read(); lines += [f'MD5 {hashlib.md5(d).hexdigest()}  {os.path.basename(p)}',f'SHA256 {hashlib.sha256(d).hexdigest()}  {os.path.basename(p)}']
+            open('out/checksums.txt','w').write('\n'.join(lines)+'\n'); log('SUCCESS',lines)
+          else: log('NOT FOUND')
+          PY
+      - name: Upload FTP recovery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dcs930l-ftp-output
+          path: out
+          retention-days: 1
