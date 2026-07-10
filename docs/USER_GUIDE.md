@@ -67,7 +67,7 @@ Template/日记模版.md
 - 查看统计面板，了解核心记忆数量和情绪分布。
 - 点击彩色情绪点，筛选近 30 天对应情绪的记录。
 
-未激活时只显示当天记忆球；激活后可以使用完整时间范围。
+此社区分支可直接使用完整时间范围。
 
 ## 4. 跳转回日记
 
@@ -132,7 +132,7 @@ color: 选择一个喜欢的颜色
 4. 输入仓库地址：
 
 ```text
-https://github.com/HouSiyuan2001/memory-orbs-user
+https://github.com/ShallowForeverDream/memory-orbs-user
 ```
 
 5. 下载完成后，在社区插件列表中启用 Memory Orbs。
@@ -184,4 +184,4 @@ theme: classic
 
 如果 BRAT 无法更新，检查仓库地址是否填写正确。
 
-如果想使用完整功能，需要在插件设置中输入激活码。
+安装并启用此社区分支后即可使用完整功能。

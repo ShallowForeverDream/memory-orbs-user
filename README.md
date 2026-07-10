@@ -1,58 +1,53 @@
 # 🧠 Memory Orbs · 记忆球
 
-> *将日记中的情绪标签变成发光的记忆球 —— 灵感来自《头脑特工队》*
+> 将日记中的情绪标签变成发光的记忆球。灵感来自《头脑特工队》。
 
----
+这是 [`HouSiyuan2001/memory-orbs-user`](https://github.com/HouSiyuan2001/memory-orbs-user) 的社区修改分支。插件核心代码采用 MIT License；本分支保留原作者署名与许可证声明。
 
-## 🌐 产品介绍
+## 本分支变化
 
-👉 **[点击查看完整产品介绍页](https://memory-orbs.pages.dev/)**
+- 可直接使用日、周、月视图和自定义日期范围；
+- 可直接使用全部视觉主题、情绪统计和笔记嵌入；
+- 删除邮箱、授权码和授权状态存储；
+- 删除远程授权请求、周期复验、购买入口和支付后端；
+- 不调用原作者的授权或支付服务。
 
----
+本分支是独立社区版本，不代表原作者的官方发行版。
 
-## 🔗 入口说明
+## 通过 BRAT 安装
 
-- 官网：`https://memory-orbs.pages.dev/`，用于查看插件介绍、功能展示和在线说明。
-- GitHub 用户仓库：`https://github.com/HouSiyuan2001/memory-orbs-user`，用于 BRAT 安装和自动更新。
-- 示例库：`https://gitee.com/housiyuan123/example-obsidian-library-of-dice`，用于直接查看完整的 Obsidian 工作流和插件演示。
+1. 在 Obsidian 中安装并启用 BRAT；
+2. 打开 BRAT 设置，选择 `Add Beta Plugin`；
+3. 输入：`https://github.com/ShallowForeverDream/memory-orbs-user`；
+4. 下载完成后启用 Memory Orbs。
 
-如果你想先了解怎么用，直接看 [docs/USER_GUIDE.md](docs/USER_GUIDE.md)。
+也可以将 `main.js`、`styles.css`、`manifest.json` 和字体文件复制到：
 
----
+```text
+<Vault>/.obsidian/plugins/memory-orbs/
+```
 
-## 📦 安装方式
+## 基本用法
 
-### 通过 BRAT（推荐，自动更新）
+默认日记目录为：
 
-1. 安装 [BRAT](https://obsidian.md/plugins?id=obsidian42-brat)
-2. 打开 BRAT 设置 → `Add Beta Plugin`
-3. 输入仓库地址：`https://github.com/HouSiyuan2001/memory-orbs-user`
-4. 启用插件
+```text
+01. Daily/Day
+```
 
-### 手动安装
+示例：
 
-将 `main.js`、`styles.css`、`manifest.json` 复制到 `.obsidian/plugins/memory-orbs/` 目录。
+```markdown
+- 今天完成了一个重要任务。 #Note/life/mood/Joy #Note/life/mood/Core
+- 调试时遇到了一些问题。 #Note/life/mood/Anxiety
+```
 
-### 激活码
+详细说明见 [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)。
 
-联系作者 **骰子** 获取激活码，在插件设置中输入即可解锁完整功能。
+## 原作者
 
----
+**骰子（Touzi）** — [B站：骰子xCosmology](https://b23.tv/a89jLec)
 
-## 📖 使用方法
+## License
 
-详细教程见 [docs/USER_GUIDE.md](docs/USER_GUIDE.md)，里面包含示例库使用、心情标签写法、BRAT 自动更新、插件设置、笔记嵌入和常见问题。
-
----
-
-## 👤 作者
-
-**骰子** — [B站: 骰子xCosmology](https://b23.tv/a89jLec)
-
----
-
-## 🙏 致谢
-
-- **SmileySans-Oblique**（得意黑斜体） — 由 [atelier-anchor](https://github.com/atelier-anchor/smiley-sans) 开源，使用 [SIL Open Font License 1.1](https://github.com/atelier-anchor/smiley-sans/blob/main/LICENSE)
-- Pixar《头脑特工队》 — 灵感来源
-- Obsidian 插件社区
+MIT License。版权与许可声明见 [`LICENSE`](LICENSE)。

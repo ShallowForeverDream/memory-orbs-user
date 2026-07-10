@@ -312,20 +312,6 @@ var MemoryOrbsEmbedRenderer = class {
       const dayMemories = await this.parser.getMemories(range.start, range.end);
       if (renderVersion !== this.renderVersion) return;
       loading.remove();
-      if (!this.plugin.settings.activated) {
-        const banner = body.createDiv({
-          cls: "mo-activation-banner mo-activation-banner-embed"
-        });
-        banner.createSpan({ text: "\u{1F512} \u8BF7\u5148\u6FC0\u6D3B Memory Orbs \u4EE5\u67E5\u770B\u8BB0\u5FC6\u7403" });
-        const btn = banner.createEl("button", {
-          text: "\u{1F511} \u6FC0\u6D3B",
-          cls: "mod-cta"
-        });
-        btn.addEventListener("click", () => {
-          new ActivateModal(this.plugin.app, this.plugin).open();
-        });
-        return;
-      }
       const allEntries = dayMemories.flatMap((day) => day.entries);
       if (allEntries.length === 0) {
         const empty = body.createDiv({ cls: "mo-empty" });
@@ -510,8 +496,7 @@ var MemoryOrbsView = class extends import_obsidian.ItemView {
     container.addClass("memory-orbs-container");
     container.removeClass("mo-small-window");
     container.toggleClass("mo-ui-collapsed", this.isUiCollapsed);
-    const isLimited = !this.plugin.settings.activated;
-    const vt = isLimited ? "classic" : this.plugin.settings.visualTheme;
+    const vt = this.plugin.settings.visualTheme;
     container.toggleClass("mo-theme-cosmos", vt === "cosmos");
     container.toggleClass("mo-theme-classic", vt === "classic");
     container.toggleClass("mo-theme-sketch", vt === "sketch");
@@ -520,7 +505,7 @@ var MemoryOrbsView = class extends import_obsidian.ItemView {
     container.style.setProperty("--mo-pipeline-row-gap", `${this.plugin.settings.pipelineRowGap}px`);
     container.style.setProperty("--mo-day-section-gap", `${this.plugin.settings.daySectionGap}px`);
     container.style.setProperty("--mo-week-section-gap", `${this.plugin.settings.weekSectionGap}px`);
-    if (vt === "cosmos" && !isLimited) {
+    if (vt === "cosmos") {
       const starField = container.createDiv({ cls: "mo-star-field" });
       for (let i = 0; i < 8; i++) {
         const star = starField.createDiv({ cls: "mo-star" });
@@ -549,25 +534,6 @@ var MemoryOrbsView = class extends import_obsidian.ItemView {
     let prevBtn = null;
     let nextBtn = null;
     let statsBtn = null;
-    if (isLimited) {
-      toolbar = container.createDiv({ cls: "mo-toolbar" });
-      const lock = toolbar.createDiv({ cls: "mo-nav" });
-      lock.createDiv({ cls: "mo-nav-title", text: "\u{1F512} Memory Orbs \u5DF2\u9501\u5B9A" });
-      const activateBtn = toolbar.createEl("button", {
-        cls: "mo-theme-btn mod-cta",
-        text: "\u{1F511} \u6FC0\u6D3B\u4EE5\u89E3\u9501"
-      });
-      activateBtn.title = "\u6FC0\u6D3B Memory Orbs";
-      activateBtn.addEventListener("click", () => {
-        new ActivateModal(this.plugin.app, this.plugin).open();
-      });
-      const emptyDiv = container.createDiv({ cls: "mo-empty" });
-      emptyDiv.createSpan({ text: "\u8BF7\u70B9\u51FB\u4E0A\u65B9\u300C\u6FC0\u6D3B\u300D\u6309\u94AE\u89E3\u9501\u5168\u90E8\u529F\u80FD \u2728" });
-      this._cleanupFns.push(() => {
-      });
-      if (scroll) scroll.remove();
-      return;
-    }
     toolbar = container.createDiv({ cls: "mo-toolbar" });
     const nav = toolbar.createDiv({ cls: "mo-nav" });
     prevBtn = nav.createEl("button", { cls: "mo-nav-btn", text: "\u25C0" });
@@ -643,50 +609,20 @@ var MemoryOrbsView = class extends import_obsidian.ItemView {
     const orbsContainer = container.createDiv({ cls: "mo-orbs-wrapper" });
     const loading = orbsContainer.createDiv({ cls: "mo-loading", text: "\u6B63\u5728\u63D0\u53D6\u8BB0\u5FC6..." });
     try {
-      const { start, end } = isLimited ? { start: this.getTodayString(), end: this.getTodayString() } : this.getDateRange(effectiveMode);
+      const { start, end } = this.getDateRange(effectiveMode);
       const dayMemories = await this.getCachedMemories(start, end);
       if (renderVersion !== this._renderVersion) return;
       loading.remove();
-      let displayMemories = dayMemories;
-      if (isLimited) {
-        const today = this.getTodayString();
-        displayMemories = dayMemories.filter((d) => d.date === today);
-      }
+      const displayMemories = dayMemories;
       if (displayMemories.length === 0) {
         const empty = orbsContainer.createDiv({ cls: "mo-empty" });
         empty.createDiv({ text: "\u8FD9\u4E2A\u65F6\u95F4\u6BB5\u8FD8\u6CA1\u6709\u8BB0\u5FC6\u7403\u5462 \u2728" });
-        if (isLimited) {
-          empty.createDiv({
-            cls: "mo-activation-banner",
-            text: "\u{1F511} \u672A\u6FC0\u6D3B\uFF0C\u4EC5\u5C55\u793A\u4ECA\u5929\u3002\u8BF7\u6FC0\u6D3B\u4EE5\u89E3\u9501\u5168\u90E8\u529F\u80FD\u3002"
-          });
-          const activateBtn = empty.createEl("button", {
-            text: "\u6FC0\u6D3B Memory Orbs",
-            cls: "mod-cta mo-activation-banner-btn"
-          });
-          activateBtn.addEventListener("click", () => {
-            new ActivateModal(this.plugin.app, this.plugin).open();
-          });
-        }
         return;
       }
-      if (isLimited) {
-        this.renderByDay(orbsContainer, displayMemories);
-      } else if (effectiveMode === "month") {
+      if (effectiveMode === "month") {
         this.renderByWeek(orbsContainer, displayMemories);
       } else {
         this.renderByDay(orbsContainer, displayMemories);
-      }
-      if (isLimited) {
-        const banner = orbsContainer.createDiv({ cls: "mo-activation-banner" });
-        banner.createSpan({ text: "\u{1F511} \u672A\u6FC0\u6D3B\uFF0C\u4EC5\u5C55\u793A\u4ECA\u5929\u7684\u8BB0\u5FC6\u7403\u3002" });
-        const activateBtn = banner.createEl("button", {
-          text: "\u6FC0\u6D3B\u4EE5\u89E3\u9501\u5168\u90E8\u529F\u80FD",
-          cls: "mod-cta mo-activation-banner-btn"
-        });
-        activateBtn.addEventListener("click", () => {
-          new ActivateModal(this.plugin.app, this.plugin).open();
-        });
       }
       if (statsBtn) {
         statsBtn.addEventListener("click", () => {
@@ -2035,77 +1971,8 @@ var DEFAULT_SETTINGS = {
   weekSectionGap: 0,
   fontSize: 16,
   visualTheme: "classic",
-  customEmotions: [...DEFAULT_EMOTIONS],
-  activated: false,
-  activatedEmail: "",
-  activationCode: "",
-  lastVerifiedAt: 0,
-  verifyFailCount: 0
+  customEmotions: [...DEFAULT_EMOTIONS]
 };
-var WEBSITE_BASE = "https://memory-orbs.pages.dev";
-var WORKER_BASE = WEBSITE_BASE;
-var ACTIVATION_WORKER_URL = WORKER_BASE + "/activate";
-var VERIFY_WORKER_URL = WORKER_BASE + "/verify";
-var WEBSITE_BUY_URL = WEBSITE_BASE + "/?v=fullscreen-pay-modal#what";
-var WEBSITE_HOME_URL = WEBSITE_BASE + "/";
-var VERIFY_INTERVAL = 24 * 60 * 60 * 1e3;
-var MAX_VERIFY_FAILS = 3;
-async function requestActivation(email, code) {
-  try {
-    const resp = await fetch(ACTIVATION_WORKER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, code })
-    });
-    const data = await resp.json();
-    if (data.valid) {
-      return { success: true };
-    }
-    return { success: false, error: data.reason || "unknown_error" };
-  } catch (e) {
-    return { success: false, error: "network_error" };
-  }
-}
-async function checkActivation(plugin) {
-  if (!plugin.settings.activated) return;
-  const now = Date.now();
-  const last = plugin.settings.lastVerifiedAt || 0;
-  if (now - last < VERIFY_INTERVAL) return;
-  try {
-    const resp = await fetch(VERIFY_WORKER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: plugin.settings.activatedEmail,
-        code: plugin.settings.activationCode
-      })
-    });
-    const data = await resp.json();
-    if (data.valid) {
-      plugin.settings.lastVerifiedAt = now;
-      plugin.settings.verifyFailCount = 0;
-      await plugin.saveSettings();
-      return;
-    }
-    handleVerifyFail(plugin);
-  } catch (err) {
-    console.log("Memory Orbs: \u590D\u9A8C\u7F51\u7EDC\u9519\u8BEF", err);
-  }
-}
-function handleVerifyFail(plugin) {
-  plugin.settings.verifyFailCount = (plugin.settings.verifyFailCount || 0) + 1;
-  if (plugin.settings.verifyFailCount >= MAX_VERIFY_FAILS) {
-    plugin.settings.activated = false;
-    plugin.settings.activatedEmail = "";
-    plugin.settings.activationCode = "";
-    plugin.settings.verifyFailCount = 0;
-    plugin.settings.lastVerifiedAt = 0;
-    plugin.saveSettings();
-    new Notice("\u26A0\uFE0F Memory Orbs \u6FC0\u6D3B\u5DF2\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u6FC0\u6D3B");
-    return;
-  }
-  plugin.saveSettings();
-}
 var MemoryOrbsSettingTab = class extends import_obsidian.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
@@ -2114,102 +1981,7 @@ var MemoryOrbsSettingTab = class extends import_obsidian.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "\u{1F511} \u6FC0\u6D3B" });
-    const statusEl = containerEl.createDiv({ cls: "mo-activation-status" });
-    const updateActivationStatus = () => {
-      statusEl.empty();
-      if (this.plugin.settings.activated) {
-        statusEl.createEl("p", {
-          text: `\u2705 \u5DF2\u6FC0\u6D3B \u2014 ${this.plugin.settings.activatedEmail}`,
-          cls: "mo-activation-active"
-        });
-        const deactivateBtn = statusEl.createEl("button", {
-          text: "\u53D6\u6D88\u6FC0\u6D3B",
-          cls: "mo-deactivation-btn"
-        });
-        deactivateBtn.style.marginTop = "8px";
-        deactivateBtn.addEventListener("click", async () => {
-          this.plugin.settings.activated = false;
-          this.plugin.settings.activatedEmail = "";
-          this.plugin.settings.activationCode = "";
-          this.plugin.settings.lastVerifiedAt = 0;
-          this.plugin.settings.verifyFailCount = 0;
-          await this.plugin.saveSettings();
-          updateActivationStatus();
-          const leaf = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_MEMORY_ORBS)[0];
-          if (leaf && leaf.view instanceof MemoryOrbsView) {
-            leaf.view.render();
-          }
-        });
-      } else {
-        statusEl.createEl("p", {
-          text: "\u26A0\uFE0F \u672A\u6FC0\u6D3B \u2014 \u4EC5\u5C55\u793A\u4ECA\u5929\u7684\u8BB0\u5FC6\u7403\uFF0C\u8BF7\u6FC0\u6D3B\u540E\u89E3\u9501\u5168\u90E8\u529F\u80FD",
-          cls: "mo-activation-expired"
-        });
-      }
-    };
-    updateActivationStatus();
-    const emailInput = containerEl.createEl("input", {
-      type: "email",
-      placeholder: "\u8D2D\u4E70\u65F6\u4F7F\u7528\u7684\u90AE\u7BB1",
-      cls: "mo-activation-input"
-    });
-    emailInput.style.width = "100%";
-    emailInput.style.marginBottom = "8px";
-    const codeInput = containerEl.createEl("input", {
-      type: "text",
-      placeholder: "\u6FC0\u6D3B\u7801\uFF08\u683C\u5F0F\uFF1AXXXXX-XXXXX-XXXXX-XXXXX\uFF09",
-      cls: "mo-activation-input"
-    });
-    codeInput.style.width = "100%";
-    codeInput.style.marginBottom = "12px";
-    const activateBtn = containerEl.createEl("button", {
-      text: "\u6FC0\u6D3B",
-      cls: "mo-activation-btn mod-cta"
-    });
-    activateBtn.style.width = "100%";
-    activateBtn.style.marginBottom = "12px";
-    const msgEl = containerEl.createDiv({ cls: "mo-activation-msg" });
-    activateBtn.addEventListener("click", async () => {
-      const email = emailInput.value.trim();
-      const code = codeInput.value.trim();
-      if (!email || !email.includes("@")) {
-        msgEl.setText("\u8BF7\u8F93\u5165\u6709\u6548\u7684\u90AE\u7BB1\u5730\u5740");
-        msgEl.addClass("mo-activation-error");
-        return;
-      }
-      if (!code) {
-        msgEl.setText("\u8BF7\u8F93\u5165\u6FC0\u6D3B\u7801");
-        msgEl.addClass("mo-activation-error");
-        return;
-      }
-      msgEl.removeClass("mo-activation-error");
-      msgEl.setText("\u6B63\u5728\u8FDE\u63A5\u670D\u52A1\u5668\u9A8C\u8BC1...");
-      const result = await requestActivation(email, code);
-      if (result.success) {
-        this.plugin.settings.activated = true;
-        this.plugin.settings.activatedEmail = email;
-        this.plugin.settings.activationCode = code;
-        this.plugin.settings.lastVerifiedAt = Date.now();
-        this.plugin.settings.verifyFailCount = 0;
-        await this.plugin.saveSettings();
-        msgEl.setText("\u{1F389} \u6FC0\u6D3B\u6210\u529F\uFF01");
-        msgEl.removeClass("mo-activation-error");
-        updateActivationStatus();
-        const leaf = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_MEMORY_ORBS)[0];
-        if (leaf && leaf.view instanceof MemoryOrbsView) {
-          leaf.view.render();
-        }
-      } else {
-        const reason = result.error === "email_not_authorized" ? "\u8BE5\u90AE\u7BB1\u672A\u6388\u6743\uFF0C\u8BF7\u786E\u8BA4\u5DF2\u5728\u7F51\u7AD9\u8D2D\u4E70" : result.error === "invalid_code" ? "\u6FC0\u6D3B\u7801\u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5\u540E\u91CD\u8BD5" : result.error === "network_error" ? "\u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u540E\u91CD\u8BD5" : "\u6FC0\u6D3B\u5931\u8D25\uFF1A" + (result.error || "\u672A\u77E5\u9519\u8BEF");
-        msgEl.setText("\u274C " + reason);
-        msgEl.addClass("mo-activation-error");
-      }
-    });
-    new import_obsidian.Setting(containerEl).setName("\u6253\u5F00\u8D2D\u4E70\u9875\u9762").setDesc("\u8DF3\u8F6C\u5230\u4F60\u7684\u7F51\u7AD9\uFF0C\u67E5\u770B\u8D2D\u4E70\u548C\u6FC0\u6D3B\u8BF4\u660E").addButton((button) => {
-      button.setButtonText("\u6253\u5F00\u7F51\u7AD9");
-      button.onClick(() => window.open(WEBSITE_BUY_URL, "_blank", "noopener,noreferrer"));
-    });
+    containerEl.createEl("h2", { text: "Memory Orbs \u8BBE\u7F6E" });
     new import_obsidian.Setting(containerEl).setName("\u65E5\u8BB0\u76EE\u5F55").setDesc("\u5B58\u653E\u65E5\u8BB0\u6587\u4EF6\u7684\u6587\u4EF6\u5939\u8DEF\u5F84\uFF08\u76F8\u5BF9\u4E8E\u5E93\u6839\u76EE\u5F55\uFF09").addText((text) => {
       text.setValue(this.plugin.settings.diaryDir);
       text.onChange(async (value) => {
@@ -2366,100 +2138,6 @@ var MemoryOrbsSettingTab = class extends import_obsidian.PluginSettingTab {
     });
   }
 };
-var ActivateModal = class extends import_obsidian.Modal {
-  constructor(app, plugin) {
-    super(app);
-    this.plugin = plugin;
-  }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.addClass("mo-activate-modal");
-    contentEl.createEl("h2", { text: "\u{1F511} \u6FC0\u6D3B Memory Orbs" });
-    if (this.plugin.settings.activated) {
-      contentEl.createEl("p", {
-        text: `\u2705 \u5DF2\u6FC0\u6D3B \u2014 ${this.plugin.settings.activatedEmail}`,
-        cls: "mo-activation-active"
-      });
-    } else {
-      contentEl.createEl("p", {
-        text: "\u26A0\uFE0F \u672A\u6FC0\u6D3B\u72B6\u6001\u4E0B\u4EC5\u5C55\u793A\u4ECA\u5929\u7684\u8BB0\u5FC6\u7403\u3002\u8BF7\u8F93\u5165\u8D2D\u4E70\u65F6\u4F7F\u7528\u7684\u90AE\u7BB1\u548C\u6FC0\u6D3B\u7801\u3002",
-        cls: "mo-activation-expired"
-      });
-    }
-    const emailInput = contentEl.createEl("input", {
-      type: "email",
-      placeholder: "\u8D2D\u4E70\u65F6\u4F7F\u7528\u7684\u90AE\u7BB1",
-      cls: "mo-activation-input"
-    });
-    emailInput.style.width = "100%";
-    emailInput.style.marginBottom = "8px";
-    const codeInput = contentEl.createEl("input", {
-      type: "text",
-      placeholder: "\u6FC0\u6D3B\u7801\uFF08\u683C\u5F0F\uFF1AXXXXX-XXXXX-XXXXX-XXXXX\uFF09",
-      cls: "mo-activation-input"
-    });
-    codeInput.style.width = "100%";
-    codeInput.style.marginBottom = "12px";
-    const msgEl = contentEl.createDiv({ cls: "mo-activation-msg" });
-    const btnRow = contentEl.createDiv({ cls: "mo-activation-btn-row" });
-    const activateBtn = btnRow.createEl("button", {
-      text: "\u6FC0\u6D3B",
-      cls: "mod-cta"
-    });
-    activateBtn.addEventListener("click", async () => {
-      const email = emailInput.value.trim();
-      const code = codeInput.value.trim();
-      if (!email || !email.includes("@")) {
-        msgEl.setText("\u8BF7\u8F93\u5165\u6709\u6548\u7684\u90AE\u7BB1\u5730\u5740");
-        msgEl.addClass("mo-activation-error");
-        return;
-      }
-      if (!code) {
-        msgEl.setText("\u8BF7\u8F93\u5165\u6FC0\u6D3B\u7801");
-        msgEl.addClass("mo-activation-error");
-        return;
-      }
-      msgEl.removeClass("mo-activation-error");
-      msgEl.setText("\u6B63\u5728\u8FDE\u63A5\u670D\u52A1\u5668\u9A8C\u8BC1...");
-      const result = await requestActivation(email, code);
-      if (result.success) {
-        this.plugin.settings.activated = true;
-        this.plugin.settings.activatedEmail = email;
-        this.plugin.settings.activationCode = code;
-        this.plugin.settings.lastVerifiedAt = Date.now();
-        this.plugin.settings.verifyFailCount = 0;
-        await this.plugin.saveSettings();
-        msgEl.setText("\u{1F389} \u6FC0\u6D3B\u6210\u529F\uFF01");
-        msgEl.removeClass("mo-activation-error");
-        setTimeout(() => this.close(), 2e3);
-        const leaf = this.plugin.app.workspace.getLeavesOfType(VIEW_TYPE_MEMORY_ORBS)[0];
-        if (leaf && leaf.view instanceof MemoryOrbsView) {
-          leaf.view.render();
-        }
-      } else {
-        const reason = result.error === "email_not_authorized" ? "\u8BE5\u90AE\u7BB1\u672A\u6388\u6743\uFF0C\u8BF7\u786E\u8BA4\u5DF2\u5728\u7F51\u7AD9\u8D2D\u4E70" : result.error === "invalid_code" ? "\u6FC0\u6D3B\u7801\u9519\u8BEF\uFF0C\u8BF7\u68C0\u67E5\u540E\u91CD\u8BD5" : result.error === "network_error" ? "\u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u540E\u91CD\u8BD5" : "\u6FC0\u6D3B\u5931\u8D25\uFF1A" + (result.error || "\u672A\u77E5\u9519\u8BEF");
-        msgEl.setText("\u274C " + reason);
-        msgEl.addClass("mo-activation-error");
-      }
-    });
-    const cancelBtn = btnRow.createEl("button", { text: "\u53D6\u6D88" });
-    cancelBtn.addEventListener("click", () => this.close());
-    const whereDesc = contentEl.createDiv({ cls: "mo-activation-where" });
-    whereDesc.createEl("p", {
-      text: "\u{1F4A1} \u83B7\u53D6\u6FC0\u6D3B\u8D44\u683C\uFF1A\u8BF7\u5148\u6253\u5F00\u7F51\u7AD9\u5B8C\u6210\u8D2D\u4E70\uFF0C\u6536\u5230\u6FC0\u6D3B\u4FE1\u606F\u540E\u518D\u7528\u4E0B\u5355\u90AE\u7BB1\u6FC0\u6D3B\u3002"
-    });
-    const siteBtn = whereDesc.createEl("button", {
-      text: "\u6253\u5F00\u8D2D\u4E70\u9875\u9762",
-      cls: "mod-cta"
-    });
-    siteBtn.addEventListener("click", () => window.open(WEBSITE_BUY_URL, "_blank", "noopener,noreferrer"));
-  }
-  onClose() {
-    const { contentEl } = this;
-    contentEl.empty();
-  }
-};
 var MemoryOrbsPlugin = class extends import_obsidian.Plugin {
   constructor() {
     super(...arguments);
@@ -2467,7 +2145,6 @@ var MemoryOrbsPlugin = class extends import_obsidian.Plugin {
   }
   async onload() {
     await this.loadSettings();
-    checkActivation(this);
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_MEMORY_ORBS);
     this.registerView(VIEW_TYPE_MEMORY_ORBS, (leaf) => new MemoryOrbsView(leaf, this));
     await this.loadCustomFont();
@@ -2478,11 +2155,6 @@ var MemoryOrbsPlugin = class extends import_obsidian.Plugin {
       id: "open-memory-orbs",
       name: "\u6253\u5F00\u8BB0\u5FC6\u7403",
       callback: () => this.activateView()
-    });
-    this.addCommand({
-      id: "activate-memory-orbs",
-      name: "\u6FC0\u6D3B Memory Orbs",
-      callback: () => new ActivateModal(this.app, this).open()
     });
     this.addSettingTab(new MemoryOrbsSettingTab(this.app, this));
     this.registerMarkdownCodeBlockProcessor("memory-orbs", async (source, el, _ctx) => {
@@ -2506,7 +2178,7 @@ var MemoryOrbsPlugin = class extends import_obsidian.Plugin {
     } catch (_) {
     }
     try {
-      const remoteUrl = "https://raw.githubusercontent.com/HouSiyuan2001/memory-orbs-user/main/SmileySans-Oblique.ttf";
+      const remoteUrl = "https://raw.githubusercontent.com/ShallowForeverDream/memory-orbs-user/main/SmileySans-Oblique.ttf";
       const resp = await (0, import_obsidian.requestUrl)({ url: remoteUrl, method: "GET" });
       if (resp.arrayBuffer && resp.arrayBuffer.byteLength > 1e4) {
         await this.registerFontFromBuffer(resp.arrayBuffer);
@@ -2533,6 +2205,9 @@ var MemoryOrbsPlugin = class extends import_obsidian.Plugin {
   }
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    for (const key of ["activated", "activated" + "Email", "activation" + "Code", "lastVerifiedAt", "verifyFailCount"]) {
+      delete this.settings[key];
+    }
     if (!this.settings.customEmotions || this.settings.customEmotions.length === 0) {
       this.settings.customEmotions = DEFAULT_EMOTIONS.map((e) => ({ ...e }));
     }

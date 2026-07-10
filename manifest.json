@@ -1,9 +1,9 @@
 {
   "id": "memory-orbs",
   "name": "Memory Orbs",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "minAppVersion": "1.0.0",
-  "description": "头脑特工队风格记忆球可视化 —— 将日记情绪标签变成发光的记忆球",
+  "description": "头脑特工队风格记忆球可视化——社区修改分支，可直接使用完整功能",
   "author": "骰子",
   "isDesktopOnly": false
 }

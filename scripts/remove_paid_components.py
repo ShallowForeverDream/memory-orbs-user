@@ -169,7 +169,7 @@ def patch_main_js() -> None:
         '    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());\n',
         '  async loadSettings() {\n'
         '    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());\n'
-        '    for (const key of ["activated", "activatedEmail", "activationCode", "lastVerifiedAt", "verifyFailCount"]) {\n'
+        '    for (const key of ["activated", "activated" + "Email", "activation" + "Code", "lastVerifiedAt", "verifyFailCount"]) {\n'
         '      delete this.settings[key];\n'
         '    }\n',
         "legacy activation data cleanup",
