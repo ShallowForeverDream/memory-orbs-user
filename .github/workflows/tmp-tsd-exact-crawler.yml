@@ -12,154 +12,123 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Query D-Link firmware record API
+      - name: Download DCS-930L v1.08 from D-Link TSD
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p out
           python3 -m pip install --quiet requests lxml
           python3 - <<'PY' 2>&1 | tee out/tsd-exact.log
-          import hashlib, io, json, os, re, urllib.parse, zipfile
+          import hashlib, io, os, re, zipfile
+          from urllib.parse import urljoin
           import requests
           from lxml import html
 
           BASE='https://tsd.dlink.com.tw/'
           TARGET='dcs930l_v108_b4.bin'
-          OUT='out/DCS-930L_FIRMWARE_1.08_B4.ZIP'
-          BIN='out/'+TARGET
           s=requests.Session(); s.verify=False
-          s.headers.update({'User-Agent':'Mozilla/5.0','Upgrade-Insecure-Requests':'1'})
           requests.packages.urllib3.disable_warnings()
           found=False
 
-          def log(*a): print(*a,flush=True)
+          def log(*x): print(*x,flush=True)
           def save(data,src,name=''):
             global found
             if len(data)<100000: return False
             try:
               if zipfile.is_zipfile(io.BytesIO(data)):
-                z=zipfile.ZipFile(io.BytesIO(data)); names=z.namelist(); md5=hashlib.md5(data).hexdigest()
-                log('ZIP',src,len(data),md5,names)
-                n=next((x for x in names if os.path.basename(x).lower()==TARGET),None)
-                if n:
-                  open(OUT,'wb').write(data); open(BIN,'wb').write(z.read(n)); found=True; return True
+                z=zipfile.ZipFile(io.BytesIO(data)); names=z.namelist()
+                log('ZIP',src,len(data),hashlib.md5(data).hexdigest(),names)
+                hit=next((n for n in names if os.path.basename(n).lower()==TARGET),None)
+                if hit:
+                  open('out/DCS-930L_FIRMWARE_1.08_B4.ZIP','wb').write(data)
+                  open('out/'+TARGET,'wb').write(z.read(hit)); found=True; return True
               low=(src+' '+name).lower()
-              if len(data)>2_000_000 and (TARGET in low or ('dcs930l' in low and any(x in low for x in ['108','1.08','b4']))):
-                open(BIN,'wb').write(data); found=True; log('RAW',src,len(data),hashlib.md5(data).hexdigest()); return True
-            except Exception as e: log('save error',e)
+              if len(data)>2_000_000 and not data.lstrip().lower().startswith((b'<html',b'<!doctype')) and (TARGET in low or ('dcs930l' in low and any(v in low for v in ('108','1.08','b4')))):
+                open('out/'+TARGET,'wb').write(data); found=True
+                log('RAW',src,len(data),hashlib.md5(data).hexdigest(),name); return True
+            except Exception as e: log('SAVE ERROR',e)
             return False
 
-          r=s.get(BASE,timeout=30); log('ROOT',r.status_code,len(r.content),r.url)
-          # Fetch current model script and prove 930L is a valid DCS suffix.
-          for jsu in [urllib.parse.urljoin(BASE,'scripts/ModelNameSelect2008.js'),urllib.parse.urljoin(BASE,'/scripts/ModelNameSelect2008.js')]:
-            try:
-              j=s.get(jsu,timeout=30); open('out/ModelNameSelect2008.js','wb').write(j.content); log('JS',jsu,j.status_code,len(j.content),j.url)
-              txt=j.text
-              pos=txt.find("k == 'DCS'")
-              if pos<0: pos=txt.find("k=='DCS'")
-              if pos>=0:
-                block=txt[pos:pos+30000]; models=re.findall(r"sl\.options\[i\]\.text='([^']+)'",block)
-                log('DCS MODELS',models[:300])
-            except Exception as e: log('JS ERR',e)
-
-          data={'Enter':'OK','ModelCategory':'DCS','ModelSno':'930L','ModelCategory_home':'DCS','ModelSno_home':'930L'}
-          detail_endpoints=['ddetail','downloads2008detail.asp','downloads2008detail']
-          detail_docs=[]
-          for ep in detail_endpoints:
-            try:
-              u=urllib.parse.urljoin(BASE,ep)
-              x=s.post(u,data=data,headers={'Referer':BASE},timeout=45,allow_redirects=True)
-              open('out/detail-'+ep.replace('/','_')+'.html','wb').write(x.content)
-              log('DETAIL',u,x.status_code,len(x.content),x.url,x.history)
-              detail_docs.append((x.url,x.text))
-            except Exception as e: log('DETAIL ERR',ep,e)
+          root=s.get(BASE,verify=False,timeout=30)
+          log('ROOT',root.status_code,len(root.content),root.url,root.cookies.get_dict())
+          payload={'Enter':'OK','ModelCategory':'DCS','ModelSno':'930L','ModelCategory_home':'DCS','ModelSno_home':'930L'}
+          referers=[BASE+'ddwn',BASE,BASE+'downloads2008.asp']
+          docs=[]
+          for ref in referers:
+            r=s.post(BASE+'ddetail',data=payload,headers={'Referer':ref,'Upgrade-Insecure-Requests':'1'},verify=False,timeout=45)
+            fn='out/detail-'+str(len(docs))+'.html'; open(fn,'wb').write(r.content)
+            log('DETAIL',ref,r.status_code,len(r.content),r.url)
+            docs.append((r.url,r.text,ref))
 
           records=[]
-          for src,text in detail_docs:
-            try:
-              tree=html.fromstring(text)
-              rows=tree.xpath(".//tr[@id='rsq']")
-              log('ROWS',src,len(rows))
-              for row in rows:
-                cells=[' '.join(t.strip() for t in td.xpath('.//text()') if t.strip()) for td in row.xpath('./td')]
-                onclick=row.get('onclick') or ''
-                log('ROW',cells,onclick)
-                m=re.search(r"dwn\('([^']+)'\s*,\s*'([^']+)'\)",onclick)
-                if m and any('firmware' in c.lower() for c in cells): records.append((m.group(1),m.group(2),cells,src))
-              # Fallback: parse every dwn call around Firmware text.
-              for m in re.finditer(r"dwn\('([^']+)'\s*,\s*'([^']+)'\)",text):
-                ctx=text[max(0,m.start()-1000):m.end()+1000]
-                if 'firmware' in ctx.lower(): records.append((m.group(1),m.group(2),['fallback'],src))
-            except Exception as e: log('PARSE DETAIL ERR',src,e)
-          # dedupe
-          ded=[]; seen=set()
-          for rec in records:
-            if rec[:2] not in seen: seen.add(rec[:2]); ded.append(rec)
-          records=ded; log('FIRMWARE RECORDS',records)
+          for src,text,ref in docs:
+            tree=html.fromstring(text)
+            rows=tree.xpath(".//tr[@id='rsq']")
+            log('ROWS',ref,len(rows))
+            for row in rows:
+              tds=row.xpath('./td')
+              cells=[' '.join(x.strip() for x in td.xpath('.//text()') if x.strip()) for td in tds]
+              oc=row.get('onclick') or ''
+              if cells: log('ROW',cells[:4],oc)
+              m=re.search(r"dwn\('([^']+)'\s*,\s*'([^']+)'\)",oc)
+              desc=' '.join(cells)
+              if m and ('firmware' in desc.lower() or re.search(r'\bFW\s*v?\s*1\.08|v108|1\.08\s*B?4',desc,re.I)):
+                records.append((m.group(1),m.group(2),desc,src))
+          # deduplicate opaque document tokens
+          seen=set(); records=[x for x in records if not (x[:2] in seen or seen.add(x[:2]))]
+          log('FIRMWARE RECORDS',records)
 
-          go_endpoints=['downloads2008detailgo.asp','ddetailgo','downloads2008detailgo']
-          snos=[]
-          for docuSno,docuSource,cells,referer in records:
-            payload={'Enter':'OK','ModelCategory':'0','ModelCategory_':'DCS','ModelSno':'0','ModelSno_':'930L','ModelVer':'','Model_Sno':'','docuSno':docuSno,'docuSource':docuSource or '1'}
-            for ep in go_endpoints:
-              try:
-                u=urllib.parse.urljoin(BASE,ep)
-                x=s.post(u,data=payload,headers={'Referer':referer},timeout=45,allow_redirects=True)
-                fn='out/go-'+re.sub(r'[^A-Za-z0-9_.-]','_',docuSno)+'-'+ep.replace('/','_')+'.html'
-                open(fn,'wb').write(x.content)
-                log('GO',u,docuSno,x.status_code,len(x.content),x.url)
-                text=x.text; tree=html.fromstring(text)
-                links=tree.xpath(".//*[@class='fn9']/@href")+tree.xpath('//a/@href')
-                names=tree.xpath(".//*[@class='fn9']/text()")
-                log('FILES',names,links[:100])
-                for href in links:
-                  m=re.search(r"dnn\('([^']+)'\)",href)
-                  if m: snos.append((m.group(1),href,docuSno))
-                for m in re.finditer(r"dnn\('([^']+)'\)",text): snos.append((m.group(1),'raw',docuSno))
-                # Direct pmdap links may already be present.
-                for u2 in re.findall(r'https?://[^\s"\'<>]+',text):
-                  if any(k in u2.lower() for k in ['getagilefile','.zip','.bin']):
-                    try:
-                      y=s.get(u2.replace('&amp;','&'),timeout=90,allow_redirects=True); log('DIRECT',u2,y.status_code,len(y.content),y.url,y.headers.get('Content-Disposition')); save(y.content,y.url,y.headers.get('Content-Disposition',''))
-                    except Exception as e: log('DIRECT ERR',e)
-              except Exception as e: log('GO ERR',ep,docuSno,e)
-          # Probe file IDs through the documented get_file endpoint.
-          uniq=[]; st=set()
-          for x in snos:
-            if x[0] not in st: st.add(x[0]); uniq.append(x)
-          log('SNOS',uniq)
-          for sno,href,docu in uniq:
+          # If current page only exposes manuals, send plausible document-type filters.
+          if not records:
+            filters=['Firmware','Firmware/Driver','FIRMWARE','firmware','1','2','3']
+            keys=['DocType','DocumentType','Type','Category','docType','selType','DownloadType']
+            for key in keys:
+              for val in filters:
+                p=dict(payload); p[key]=val
+                r=s.post(BASE+'ddetail',data=p,headers={'Referer':BASE+'ddwn','Upgrade-Insecure-Requests':'1'},verify=False,timeout=30)
+                text=r.text
+                if 'Firmware:' in text or re.search(r'>Firmware\s*<',text,re.I):
+                  open(f'out/filter-{key}-{re.sub(r"[^A-Za-z0-9]","_",val)}.html','wb').write(r.content)
+                  tree=html.fromstring(text)
+                  for row in tree.xpath(".//tr[@id='rsq']"):
+                    cells=[' '.join(x.strip() for x in td.xpath('.//text()') if x.strip()) for td in row.xpath('./td')]
+                    oc=row.get('onclick') or ''; desc=' '.join(cells)
+                    m=re.search(r"dwn\('([^']+)'\s*,\s*'([^']+)'\)",oc)
+                    if m and 'firmware' in desc.lower(): records.append((m.group(1),m.group(2),desc,r.url))
+                  log('FILTER HIT',key,val,len(records))
+
+          for token,source,desc,ref in records:
             if found: break
-            for ep in [f'asp/get_file.asp?sno={urllib.parse.quote(sno)}',f'get_file.asp?sno={urllib.parse.quote(sno)}']:
-              try:
-                u=urllib.parse.urljoin(BASE,ep)
-                y=s.get(u,headers={'Referer':urllib.parse.urljoin(BASE,'downloads2008detailgo.asp')},timeout=120,allow_redirects=True)
-                log('GET FILE',sno,u,y.status_code,len(y.content),y.url,y.headers.get('Content-Disposition'),y.headers.get('Content-Type'))
-                save(y.content,y.url,y.headers.get('Content-Disposition',''))
-              except Exception as e: log('GET FILE ERR',sno,e)
+            form={'Enter':'OK','ModelCategory':'0','ModelCategory_':'DCS','ModelSno':'0','ModelSno_':'930L','ModelVer':'','Model_Sno':'','docuSno':token,'docuSource':source}
+            for endpoint in ['downloads2008detailgo.asp','ddgo','downloads2008detailgo']:
+              if found: break
+              u=urljoin(BASE,endpoint)
+              r=s.post(u,data=form,headers={'Referer':BASE+'downloads2008detail.asp','Upgrade-Insecure-Requests':'1'},verify=False,timeout=45)
+              open('out/go-'+token+'-'+endpoint.replace('/','_')+'.html','wb').write(r.content)
+              log('GO',token,endpoint,r.status_code,len(r.content),r.url,desc)
+              tree=html.fromstring(r.text)
+              names=tree.xpath(".//*[@class='fn9']/text()")
+              hrefs=tree.xpath(".//*[@class='fn9']/@href")
+              log('FILES',names,hrefs)
+              for name,href in zip(names,hrefs):
+                m=re.search(r"dnn\('([^']+)'\)",href)
+                if not m: continue
+                sno=m.group(1)
+                for ep in [f'asp/get_file.asp?sno={sno}',f'get_file.asp?sno={sno}']:
+                  q=s.get(urljoin(BASE,ep),headers={'Referer':r.url,'Upgrade-Insecure-Requests':'1'},verify=False,timeout=120,allow_redirects=True)
+                  cd=q.headers.get('Content-Disposition','')
+                  log('FILE',name,sno,q.status_code,len(q.content),q.url,cd,q.headers.get('Content-Type'))
+                  if save(q.content,q.url,cd+' '+name): break
 
-          # The historical crawler snapshot may reveal a still-valid direct URL.
-          try:
-            csvurl='https://raw.githubusercontent.com/MikimotoH/DLink_Harvester/1977699f2a424db3f89bb770b2a7b5680f7498d7/tsd_dlink_filelist.csv'
-            c=s.get(csvurl,timeout=45); open('out/tsd_dlink_filelist.csv','wb').write(c.content); log('CSV',c.status_code,len(c.content))
-            for line in c.text.splitlines():
-              if line.lower().startswith('dcs-930l,') or 'dcs930l_v108_b4' in line.lower() or 'dcs-930l_firmware_1.08' in line.lower():
-                log('CSV MATCH',line)
-                parts=line.split(',');
-                for u in parts:
-                  if u.startswith('http'):
-                    try:
-                      y=s.get(u,timeout=120,allow_redirects=True); log('CSV GET',y.status_code,len(y.content),y.url,y.headers.get('Content-Disposition')); save(y.content,y.url,y.headers.get('Content-Disposition',''))
-                    except Exception as e: log('CSV GET ERR',e)
-          except Exception as e: log('CSV ERR',e)
-
-          if os.path.exists(OUT) or os.path.exists(BIN):
+          if found:
             lines=[]
-            for p in [OUT,BIN]:
+            for p in ['out/DCS-930L_FIRMWARE_1.08_B4.ZIP','out/'+TARGET]:
               if os.path.exists(p):
                 d=open(p,'rb').read(); lines += [f'MD5 {hashlib.md5(d).hexdigest()}  {os.path.basename(p)}',f'SHA256 {hashlib.sha256(d).hexdigest()}  {os.path.basename(p)}']
-            open('out/checksums.txt','w').write('\n'.join(lines)+'\n'); log('SUCCESS',lines)
-          else: log('NOT FOUND')
+            open('out/checksums.txt','w').write('\n'.join(lines)+'\n')
+            log('SUCCESS',lines)
+          else:
+            log('NOT FOUND')
           PY
       - name: Upload exact TSD output
         if: always()
