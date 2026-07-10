@@ -1,0 +1,122 @@
+name: Temporary firmware fetch PR
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and validate DCS-930L v1.08
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 - <<'PY'
+          import hashlib, json, os, re, shutil, sys, urllib.parse, urllib.request, zipfile
+
+          out = 'out/DCS-930L_FIRMWARE_1.08_B4.ZIP'
+          expected = '31f11d8a7f938ddd78aec361063245a4'
+          target = 'dcs930l_v108_b4.bin'
+          notes = []
+
+          def log(s):
+              print(s, flush=True); notes.append(s)
+
+          def get(url, tag, referer=None):
+              p = f'out/{tag}.tmp'
+              headers = {'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36'}
+              if referer: headers['Referer'] = referer
+              try:
+                  req = urllib.request.Request(url, headers=headers)
+                  with urllib.request.urlopen(req, timeout=60) as r, open(p,'wb') as f:
+                      shutil.copyfileobj(r,f)
+                  log(f'GET {url} -> {os.path.getsize(p)} bytes')
+                  return p
+              except Exception as e:
+                  log(f'GET failed {url}: {e}')
+                  return None
+
+          def accept(p, src):
+              if not p or not os.path.exists(p) or not zipfile.is_zipfile(p):
+                  log(f'not a zip: {src}'); return False
+              try:
+                  with zipfile.ZipFile(p) as z:
+                      names=z.namelist(); log(f'ZIP {src}: {names}')
+                      if not any(os.path.basename(x).lower()==target for x in names): return False
+                  md5=hashlib.md5(open(p,'rb').read()).hexdigest(); log(f'MD5 {md5}')
+                  if md5 != expected: return False
+                  os.replace(p,out); return True
+              except Exception as e:
+                  log(f'validation failed {src}: {e}'); return False
+
+          urls = [
+            'https://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+            'http://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+            'ftp://ftp2.dlink.com/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+            'https://support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+            'http://support.dlink.com/resource/PRODUCTS/DCS-930L/REVA/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+            'https://files.dlink.com.au/products/DCS-930L/REV_A/Firmware/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+            'http://files.dlink.com.au/products/DCS-930L/REV_A/Firmware/DCS-930L_FIRMWARE_1.08_B4.ZIP',
+          ]
+          ok=False
+          for i,u in enumerate(urls):
+              if accept(get(u,f'direct{i}'),u): ok=True; break
+
+          if not ok:
+              originals = urls[:5]
+              for original in originals:
+                  q=urllib.parse.urlencode({'url':original,'output':'json','filter':'statuscode:200','fl':'timestamp,original,statuscode,mimetype,digest,length','collapse':'digest'})
+                  cdx='https://web.archive.org/cdx/search/cdx?'+q
+                  try:
+                      req=urllib.request.Request(cdx,headers={'User-Agent':'Mozilla/5.0'})
+                      rows=json.load(urllib.request.urlopen(req,timeout=60)); log(f'CDX {original}: {rows[:6]}')
+                  except Exception as e:
+                      log(f'CDX failed {original}: {e}'); continue
+                  for row in reversed(rows[1:] if rows else []):
+                      snap=f'https://web.archive.org/web/{row[0]}id_/{row[1]}'
+                      if accept(get(snap,'wayback'+row[0]),snap): ok=True; break
+                  if ok: break
+
+          if not ok:
+              pages=['https://rebyte.me/en/d-link/63506/file-591872/','https://drivers.softpedia.com/get/FIRMWARE/D-Link/D-Link-DCS-930L-Camera-Firmware-108.shtml']
+              seen=set()
+              for page in pages:
+                  try:
+                      req=urllib.request.Request(page,headers={'User-Agent':'Mozilla/5.0'})
+                      html=urllib.request.urlopen(req,timeout=60).read().decode('utf-8','replace')
+                      open('out/'+page.split('/')[2]+'.html','w',encoding='utf-8').write(html)
+                      log(f'PAGE {page}: {len(html)} chars')
+                  except Exception as e:
+                      log(f'PAGE failed {page}: {e}'); continue
+                  rawlinks=re.findall(r'''(?:href|src|action)=["']([^"']+)["']''',html,re.I)
+                  for j,raw in enumerate(rawlinks):
+                      u=urllib.parse.urljoin(page,raw.replace('&amp;','&'))
+                      low=u.lower()
+                      if u in seen or not any(k in low for k in ['.zip','download','postdownload','file-591872']): continue
+                      seen.add(u)
+                      if accept(get(u,f'mirror{len(seen)}',page),u): ok=True; break
+                  if ok: break
+
+          open('out/fetch-log.txt','w',encoding='utf-8').write('\n'.join(notes)+'\n')
+          if not ok: sys.exit('validated archive not found')
+          with zipfile.ZipFile(out) as z:
+              n=next(n for n in z.namelist() if os.path.basename(n).lower()==target)
+              open('out/'+target,'wb').write(z.read(n))
+          data=open(out,'rb').read()
+          open('out/checksums.txt','w').write('MD5 '+hashlib.md5(data).hexdigest()+'  '+os.path.basename(out)+'\nSHA256 '+hashlib.sha256(data).hexdigest()+'  '+os.path.basename(out)+'\n')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dcs930l-v108-firmware
+          path: |
+            out/DCS-930L_FIRMWARE_1.08_B4.ZIP
+            out/dcs930l_v108_b4.bin
+            out/checksums.txt
+            out/fetch-log.txt
+          retention-days: 1
